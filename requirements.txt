@@ -1,0 +1,11 @@
+opencv-python~=4.9.0.80
+numpy~=1.26.4
+mss~=9.0.2
+pywin32~=306
+ultralytics~=8.2.98
+PyWinCtl
+matplotlib~=3.9.2
+keyboard
+pyvirtualdisplay
+dynaconf~=3.2.6
+dropbox~=12.0.2

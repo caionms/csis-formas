@@ -1,0 +1,127 @@
+[tool.poetry]
+name = "csis-ufba"
+version = "0.0.1"
+description = ""
+authors = ["Caio Nery Matos Santos"]
+package-mode = false
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[tool.poetry.dependencies]
+python = ">= 3.10"
+pywin32 = "*"
+#opencv-python = "^4.5.3"
+numpy = "*"
+#pygetwindow = "^0.0.9"
+PyWinCtl = "*"
+#pillow = "*"
+matplotlib = "*"
+keyboard = "*"
+mss = "*"
+#gui_automation = { git = "https://github.com/marcosboggia/gui_automation.git", branch = "master" }
+ultralytics = "*"
+#opencv-python-headless = "<4.10.0"
+opencv-python = "<4.10.0"
+pyvirtualdisplay = "*"
+dropbox = "*"
+dynaconf = "*"
+
+[tool.poetry.dev-dependencies]
+black = "^23.11.0"
+mypy = "*"
+pytest = "*"
+ruff = "*"
+flake8 = "*"
+coverage = "*"
+pytest-icdiff = "*"
+
+[tool]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# Enable the isort rules.
+extend-select = ["I"]
+select = [
+  "F",
+  "E",
+  "W",
+  # Ignorar todos de documentação ate acharmos como o Ruff pode
+  # providenciar linting para o estilo de documentação do Escavador:
+  # (https://onboarding.potelo.com.br/estudos/#/backend/regras-para-documentacao-backend)
+  # Ele pode fazer isso implementando os linters do DARGLINT,
+  # nesse caso precisamos que a issue abaixo seja resolvida.
+  # Issue: https://github.com/charliermarsh/ruff/issues/458
+  # "D"
+  # https://github.com/charliermarsh/ruff/blob/main/crates/ruff/src/rules/pydocstyle/mod.rs
+  "D102", # Docstring em métodos publicos
+  "D101", # Docstring em classes publicas
+  "D105", # Docstring em metodos magicos
+  "D100", # Docstring em Modulos
+  "D106", # Docstring em classe dentro de classe
+  "D104", # Docstring em Pacote
+  "D419", # Docstring vazia
+  "D208", # Identação demais
+  "D210", # Espaços extra em volta da docstring
+]
+ignore = [
+  # The E203, E231, and W503 are not implemented in Ruff, those
+  # only serve to conflict with the Black formatter , since Ruff
+  # fully supports black we can just not care about those rules
+  # since they are not implemented
+  "E722", # do not use bare 'except'
+  "E711", # comparison to None should be 'if cond is None:'
+  "D212", # Multi-line docstring should start at first line
+  "D203", # 1 blank line required before class docstring
+]
+exclude = [
+  "__pycache__",
+  "tutorials",
+  "build",
+  ".git",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".vscode",
+  ".venv",
+  "dist",
+  "doc",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [
+  "F401", # unused imports
+  "E501", # line length violation
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+
+[tool.ruff.lint.isort]
+# Combina imports do mesmo modulo
+combine-as-imports = true
+
+[tool.black]
+# Breaks lines at better places
+line-length = 100
+
+include = '\.pyi?$'
+
+exclude = '''
+(
+      __pycache__
+    | \btutorials\b
+    | \bbuild\b
+    | \.git
+    | \.mypy_cache
+    | \.pytest_cache
+    | \.vscode
+    | \.venv
+    | \bdist\b
+    | \bdoc\b
+)
+'''
