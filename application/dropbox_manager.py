@@ -21,6 +21,8 @@ class DropboxManager:
         Args:
             access_token (Optional[str]): O token de acesso para autenticação com o Dropbox.
         """
+        MODELS_PATH.mkdir(parents=True, exist_ok=True)
+
         try:
             self.dbx_client = dropbox.Dropbox(access_token)
             logger.info("[DropboxManager][init] Cliente Dropbox inicializado com sucesso.")
@@ -47,13 +49,16 @@ class DropboxManager:
         return wrapper
 
     @ensure_client
-    async def download(self, local_file_path: Path, dropbox_path: str) -> None:
+    def download(self, local_file_path: str, dropbox_path: str) -> bool:
         """
         Faz o download de um arquivo do Dropbox e salva no caminho local especificado.
 
         Args:
-            local_file_path (Path): Caminho local para salvar o arquivo.
+            local_file_path (str): Caminho local para salvar o arquivo.
             dropbox_path (str): Caminho do arquivo no Dropbox.
+
+        Returns:
+            bool: Retorna se baixou com sucesso ou não.
 
         Raises:
             ApiError: Se houver um erro da API do Dropbox.
@@ -62,25 +67,34 @@ class DropboxManager:
         """
         try:
             logger.info(f"[DropboxManager][download] Iniciando o download de {dropbox_path}.")
-            with local_file_path.open("wb") as file:
-                metadata, res = self.dbx_client.files_download(path=dropbox_path)
+            metadata, res = self.dbx_client.files_download(path=dropbox_path)
+            logger.info(
+                f"[DropboxManager][download] Download concluído de {dropbox_path}. Agora salvando em {local_file_path}.")
+
+            with open(local_file_path, "wb") as file:
                 file.write(res.content)
-            logger.info(f"[DropboxManager][download] Download concluído: {dropbox_path} salvo em {local_file_path}.")
+
+            logger.info(f"[DropboxManager][download] Arquivo {dropbox_path} salvo em {local_file_path}.")
+            return True
         except ApiError:
             logger.exception(f"[DropboxManager][download] Erro da API ao baixar {dropbox_path}.")
         except FileNotFoundError:
             logger.exception(f"[DropboxManager][download] Caminho local {local_file_path} não encontrado.")
         except Exception:
             logger.exception(f"[DropboxManager][download] Erro desconhecido ao baixar {dropbox_path}.")
+        return False
 
     @ensure_client
-    async def upload(self, local_file_path: Path, dropbox_path: str) -> None:
+    def upload(self, local_file_path: str, dropbox_path: str) -> bool:
         """
         Faz o upload de um arquivo do caminho local para o Dropbox.
 
         Args:
-            local_file_path (Path): Caminho do arquivo local a ser enviado.
+            local_file_path (str): Caminho do arquivo local a ser enviado.
             dropbox_path (str): Caminho destino no Dropbox.
+
+        Returns:
+            bool: Retorna se baixou com sucesso ou não.
 
         Raises:
             ApiError: Se houver um erro da API do Dropbox.
@@ -89,12 +103,14 @@ class DropboxManager:
         """
         try:
             logger.info(f"[DropboxManager][upload] Iniciando o upload de {local_file_path} para {dropbox_path}.")
-            with local_file_path.open("rb") as file:
+            with open(local_file_path, "rb") as file:
                 self.dbx_client.files_upload(file.read(), dropbox_path)
             logger.info(f"[DropboxManager][upload] Upload concluído: {local_file_path} enviado para {dropbox_path}.")
+            return True
         except ApiError:
             logger.exception(f"[DropboxManager][upload] Erro da API ao enviar {local_file_path}.")
         except FileNotFoundError:
             logger.exception(f"[DropboxManager][upload] Arquivo local {local_file_path} não encontrado.")
         except Exception:
             logger.exception(f"[DropboxManager][upload] Erro desconhecido ao enviar {local_file_path} para {dropbox_path}.")
+        return False
