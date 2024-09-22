@@ -1,7 +1,11 @@
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, mock_open, patch
 
+import pytest
+
 from application.dropbox_manager import DropboxManager
+from config import settings
 
 
 class DropboxManagerTest(unittest.TestCase):
@@ -93,6 +97,25 @@ class DropboxManagerTest(unittest.TestCase):
 
         self.assertFalse(result)
 
+    @pytest.mark.skip(reason="Teste funcional que faz o download de um arquivo do Dropbox. "
+                             "Não deve ser usado como teste unitário.")
+    def test_download_dropbox(self):
+        """Teste funcional que faz o download de um arquivo do Dropbox."""
+        access_token = settings.dropbox.access_token
+
+        dropbox_model_path = settings.dropbox.models.yolov8x
+
+        path_to_model_folder = Path(__file__).parents[1] / "dev"
+
+        path_to_model = path_to_model_folder / "yolov8x.pt"
+
+        path_to_model_folder.mkdir(parents=True, exist_ok=True)
+
+        manager = DropboxManager(access_token=access_token)
+        manager.download(
+            dropbox_path=str(dropbox_model_path),
+            local_file_path=str(path_to_model),
+        )
 
 if __name__ == '__main__':
     unittest.main()
