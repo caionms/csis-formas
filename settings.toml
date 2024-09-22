@@ -1,0 +1,8 @@
+[app]
+loglevel="INFO"
+
+[dropbox.models]
+public_safety = "public_safety.pt"
+plates = "plates.pt"
+yolov8x = "yolov8x.pt"
+pose = "yolov8x-pose.pt"
