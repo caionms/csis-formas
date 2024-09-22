@@ -4826,6 +4826,17 @@ mpmath = ">=1.1.0,<1.4"
 dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
 
 [[package]]
+name = "toml"
+version = "0.10.2"
+description = "Python Library for Tom's Obvious, Minimal Language"
+optional = false
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+files = [
+    {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
+    {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
+]
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -4999,13 +5010,13 @@ files = [
 
 [[package]]
 name = "ultralytics"
-version = "8.2.98"
+version = "8.2.99"
 description = "Ultralytics YOLO for SOTA object detection, multi-object tracking, instance segmentation, pose estimation and image classification."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "ultralytics-8.2.98-py3-none-any.whl", hash = "sha256:f3591f0275d3f1a7a62b0518051233e24a33ffd2c40f9d92fca1460bc0c2ae3e"},
-    {file = "ultralytics-8.2.98.tar.gz", hash = "sha256:c75df1e8f5261af9d7ca5c17de2fcb400b77e285b483b0c56ed62869c6ec965e"},
+    {file = "ultralytics-8.2.99-py3-none-any.whl", hash = "sha256:a123d6df9e608f6fdd81db839b37244d9ce509dfd5d5920bcd70731a08bd4bf4"},
+    {file = "ultralytics-8.2.99.tar.gz", hash = "sha256:f12a9b395e5d465a35e4e94e614bfe075917175b720632a2bd1eea00ff506247"},
 ]
 
 [package.dependencies]
@@ -5037,13 +5048,13 @@ logging = ["comet", "dvclive (>=2.12.0)", "tensorboard (>=2.13.0)"]
 
 [[package]]
 name = "ultralytics-thop"
-version = "2.0.6"
+version = "2.0.8"
 description = "Ultralytics THOP package for fast computation of PyTorch model FLOPs and parameters."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "ultralytics_thop-2.0.6-py3-none-any.whl", hash = "sha256:07a94ac34f503859c36430b3049f8701389e6a5af8c9c683625aad373daeb99c"},
-    {file = "ultralytics_thop-2.0.6.tar.gz", hash = "sha256:2194c6f620c09c075f5814f013a36275a49d1102313d7977fc548fade9ead06f"},
+    {file = "ultralytics_thop-2.0.8-py3-none-any.whl", hash = "sha256:dcbeb527378aed3fa2434a6d7faa8a65169cb2a5a5eaaa156eab8582f106c97d"},
+    {file = "ultralytics_thop-2.0.8.tar.gz", hash = "sha256:fd098468a5a50609c28906c557240c0d1603175c5420843de5ebefd7c83376ab"},
 ]
 
 [package.dependencies]
@@ -5070,4 +5081,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">= 3.10"
-content-hash = "474ba0cc6c67a3fd9a4f07437683ac4a1361da8ff66268d607812cbade706c67"
+content-hash = "279d25060696e009d25bef13dfcf56c55beecefb461ec87136b06dacf882a953"
