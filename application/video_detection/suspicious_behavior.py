@@ -65,8 +65,8 @@ def update_tracking(tracker_results: list[Any], current_frame: int, tracking_dat
         else:
             # Print an alert if the person has been present for more than track_buffer frames
             if data['total_present_frames'] > track_buffer:
-                print(
-                    f"Alert! Person with ID {track_id} has been in the video for {data['total_present_frames']} frames.")
+                logger.info(
+                    f"[SuspiciousBehaviorDetection][update_tracking] Alert! Person with ID {track_id} has been in the video for {data['total_present_frames']} frames.")
 
 
 def main(video_path: str, supicious_frame_limit: int = 60, save_video: bool = False, show_video: bool = True) -> None:
@@ -92,7 +92,7 @@ def main(video_path: str, supicious_frame_limit: int = 60, save_video: bool = Fa
     cap = cv.VideoCapture(video_path)
 
     if cap is None:
-        logger.error(f"Could not open video file: {video_path}")
+        logger.error(f"[SuspiciousBehaviorDetection] Could not open video file: {video_path}")
         return
 
     # Get the frame rate to calculate time
@@ -105,7 +105,7 @@ def main(video_path: str, supicious_frame_limit: int = 60, save_video: bool = Fa
 
     # Get the value of 'track_buffer'
     track_buffer = config.get('track_buffer')
-    logger.info(f"The value of track_buffer is: {track_buffer}")
+    logger.info(f"[SuspiciousBehaviorDetection] The value of track_buffer is: {track_buffer}")
 
     # The maximum number of frames that a track can be lost
     max_time_lost = int(fps / 30.0 * track_buffer)
@@ -171,7 +171,7 @@ def main(video_path: str, supicious_frame_limit: int = 60, save_video: bool = Fa
                     total_frames = tracking_data.get(track_id, {}).get('total_present_frames', 0)
 
                     # Check if the person has been present for more than the suspicious frame limit
-                    if total_frames > max_time_lost:
+                    if total_frames > supicious_frame_limit:
                         label = f"{track_id}: {total_frames}f (suspect)"
                         color = (0, 0, 255)  # Red for suspicious persons
                     else:
@@ -190,12 +190,12 @@ def main(video_path: str, supicious_frame_limit: int = 60, save_video: bool = Fa
                 )
 
         if show_video:
-            cv.imshow("Public Safety Detection", frame)
+            cv.imshow("Suspicious Behavior Detection", frame)
 
         if save_video and out is not None:
             out.write(frame)
 
-        print(f'FPS: {1 / (time() - loop_time):.2f}')
+        logger.info(f'[SuspiciousBehaviorDetection] FPS: {1 / (time() - loop_time):.2f}')
         loop_time = time()
 
         if cv.waitKey(1) & 0xFF == ord('q'):
@@ -205,10 +205,10 @@ def main(video_path: str, supicious_frame_limit: int = 60, save_video: bool = Fa
     if save_video:
         out.release()
     cv.destroyAllWindows()
-    print('Done.')
+    logger.info('[SuspiciousBehaviorDetection] Done.')
 
 
 if __name__ == "__main__":
     # Para finalizar o programa, apertar Q depois de clicar na visualização do plot ou fechar a janela que está sendo detectada
     #path = Path(__file__).parents[2] / "data" / "public_safety" / "1.mp4"
-    main("D:\\Documents\\TCC\\TIC\\2024-06\\EFGYarRUC2.mp4", save_video=False, show_video=True)
+    main("D:\\Documents\\TCC\\TIC\\2024-06\\EFGYarRUC2.mp4", supicious_frame_limit=5, save_video=False, show_video=True)
