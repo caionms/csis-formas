@@ -105,9 +105,11 @@ class DropboxManagerTest(unittest.TestCase):
 
         dropbox_model_path = settings.dropbox.models.yolov8x
 
+        model_filename = dropbox_model_path.split("/")[-1]
+
         path_to_model_folder = Path(__file__).parents[1] / "dev"
 
-        path_to_model = path_to_model_folder / "yolov8x.pt"
+        path_to_model = path_to_model_folder / model_filename
 
         path_to_model_folder.mkdir(parents=True, exist_ok=True)
 
@@ -116,6 +118,7 @@ class DropboxManagerTest(unittest.TestCase):
             dropbox_path=str(dropbox_model_path),
             local_file_path=str(path_to_model),
         )
+
 
 if __name__ == '__main__':
     unittest.main()
