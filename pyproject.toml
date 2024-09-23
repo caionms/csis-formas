@@ -28,6 +28,11 @@ pyvirtualdisplay = "*"
 dropbox = "*"
 dynaconf = "*"
 toml = "*"
+# Necessario pro tracking de comportamento suspeito
+lapx = ">=0.5.2"
+pyyaml = "*"
+importlib = "*"
+
 
 [tool.poetry.dev-dependencies]
 black = "^23.11.0"
