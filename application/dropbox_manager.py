@@ -1,4 +1,5 @@
 import base64
+import os
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -229,6 +230,44 @@ class DropboxManager:
 
         return False
 
+    @ensure_client
+    def download_folder(self, local_folder_path: str, dropbox_folder_path: str) -> bool:
+        """
+        Faz o download de uma pasta do Dropbox e salva no caminho local especificado.
+
+        Args:
+            local_folder_path (str): Caminho local para salvar a pasta.
+            dropbox_folder_path (str): Caminho da pasta no Dropbox.
+
+        Returns:
+            bool: Retorna True se o download foi bem-sucedido, False caso contrário.
+        """
+        try:
+            logger.info(f"[DropboxManager][download_folder] Iniciando o download da pasta {dropbox_folder_path}.")
+
+            if not os.path.exists(local_folder_path):
+                os.makedirs(local_folder_path)
+
+            # Lista os arquivos e subpastas no Dropbox
+            response = self.dbx_client.files_list_folder(dropbox_folder_path)
+
+            # Itera pelos itens da pasta
+            for entry in response.entries:
+                dropbox_entry_path = entry.path_lower
+                local_entry_path = os.path.join(local_folder_path, entry.name)
+
+                if isinstance(entry, dropbox.files.FileMetadata):
+                    # Se for um arquivo, faz o download
+                    self.download(local_entry_path, dropbox_entry_path)
+                elif isinstance(entry, dropbox.files.FolderMetadata):
+                    # Se for uma subpasta, chama a função recursivamente
+                    self.download_folder(local_entry_path, dropbox_entry_path)
+
+            return True
+        except Exception:
+            logger.exception(
+                f"[DropboxManager][download_folder] Erro desconhecido ao baixar a pasta {dropbox_folder_path}.")
+            return False
     @ensure_client
     def upload(self, local_file_path: str, dropbox_path: str) -> bool:
         """
