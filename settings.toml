@@ -6,3 +6,9 @@ public_safety = "/public_safety.pt"
 plates = "/plates.pt"
 yolov8x = "/yolov8x.pt"
 pose = "/yolov8x-pose.pt"
+paddleocr= "/25_ep"
+
+[paddleocr]
+rec_algorithm = "SVTR_LCNet"
+rec_image_shape = "3,48,320"
+use_gpu = false
