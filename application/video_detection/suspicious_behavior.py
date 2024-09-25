@@ -5,6 +5,7 @@ from time import time
 from typing import Any, Optional, Tuple
 
 import cv2 as cv
+import torch
 import yaml
 from ultralytics import YOLO
 
@@ -131,6 +132,8 @@ def main(video_path: str, supicious_frame_limit: int = 60, save_video: bool = Fa
                 "Detection cannot be performed.")
             return
     model = YOLO(model_path)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model.to(device)
 
     # Dictionary to store tracking data (presence and absence) by ID
     tracking_data = TrackingData()
@@ -209,6 +212,7 @@ def main(video_path: str, supicious_frame_limit: int = 60, save_video: bool = Fa
 
 
 if __name__ == "__main__":
+    print(torch.cuda.is_available())
     # Para finalizar o programa, apertar Q depois de clicar na visualização do plot ou fechar a janela que está sendo detectada
     #path = Path(__file__).parents[2] / "data" / "public_safety" / "1.mp4"
-    main("D:\\Documents\\TCC\\TIC\\2024-06\\EFGYarRUC2.mp4", supicious_frame_limit=5, save_video=False, show_video=True)
+    #main("D:\\Documents\\TCC\\TIC\\2024-06\\EFGYarRUC2.mp4", supicious_frame_limit=5, save_video=False, show_video=True)
