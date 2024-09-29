@@ -6,15 +6,11 @@ repos:
         args: ["--ignore-missing-imports", "--install-types", "--non-interactive"]
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.241
+    rev: v0.6.7
     hooks:
       - id: ruff
-        args: [
-          "--fix",  # Corrige automaticamente os problemas de linting
-          "--line-length=100",  # Config do comprimento de linha
-          "--ignore=E203,E231,W503,E722,E711,E701,E704",  # Ignora regras especificas (retiradas da config do flake8)
-          "--per-file-ignores=*/__init__.py:F401"  # Ignorar imports não usados em __init__.py
-        ]
+        args: [ --fix ]
+      - id: ruff-format
 
   - repo: https://github.com/MarcoGorelli/auto-walrus
     rev: 0.3.4

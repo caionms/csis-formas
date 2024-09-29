@@ -32,6 +32,9 @@ toml = "*"
 lapx = ">=0.5.2"
 pyyaml = "*"
 importlib = "*"
+# Para o simulador RTSP
+flask = "*"
+gunicorn = "*"
 
 
 [tool.poetry.dev-dependencies]
