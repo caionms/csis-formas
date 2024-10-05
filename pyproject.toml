@@ -46,6 +46,7 @@ flake8 = "*"
 coverage = "*"
 pytest-icdiff = "*"
 pre-commit = "^3.8.0"
+deptry = "*"
 
 [tool]
 
