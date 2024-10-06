@@ -21,4 +21,4 @@ repos:
     rev: v3.17.0
     hooks:
       - id: pyupgrade
-        args: ['--py311-plus', '--keep-optional-none']  # Atualiza o código para usar as features mais recentes do Python 3.11
+        args: ['--py311-plus']  # Atualiza o código para usar as features mais recentes do Python 3.11
