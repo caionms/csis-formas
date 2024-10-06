@@ -15,7 +15,7 @@ def list_window_names() -> None:
     visíveis e imprime seus identificadores e títulos.
     """
 
-    def winEnumHandler(hwnd: int, ctx: None | None) -> None:
+    def winEnumHandler(hwnd: int, ctx: None) -> None:
         if win32gui.IsWindowVisible(hwnd):
             print(hex(hwnd), win32gui.GetWindowText(hwnd))
 
