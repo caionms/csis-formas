@@ -17,7 +17,11 @@ logger = get_logger(__name__)
 
 
 def save_results_to_json(
-    results: list[Results], file_path: str, classes_names: list[str], frame_path: str | None = None
+    results: list[Results],
+    file_path: str,
+    classes_names: list[str],
+    model_name: str,
+    frame_path: str | None = None,
 ) -> None:
     """
     Save YOLO inference results to a JSON file, adding a new entry with a timestamp.
@@ -26,6 +30,7 @@ def save_results_to_json(
         results (List[Results]): The YOLO inference results.
         file_path (str): Path to the JSON file to save the results.
         classes_names (List[str]): List of class names corresponding to the model output classes.
+        model_name (str): The name of the model used for inference.
         frame_path (Optional[str]): Path to the frame image file, if available.
     """
     # Use list comprehension to collect detections above a confidence threshold
@@ -50,6 +55,7 @@ def save_results_to_json(
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "detections": detections,
         "frame_path": frame_path,
+        "model": model_name,
     }
 
     # Read existing JSON file content or initialize an empty list
