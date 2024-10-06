@@ -44,7 +44,8 @@ def save_results_to_json(
         }
         for result in results
         for box in result.boxes
-        if box.conf > 0.8  # Filter out low-confidence detections
+        # TODO: Aumentar esse valor depois do desenvolvimento
+        if box.conf > 0.2  # Filter out low-confidence detections
     ]
 
     if not detections:
