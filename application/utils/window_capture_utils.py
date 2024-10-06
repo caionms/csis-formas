@@ -22,26 +22,32 @@ def list_window_names() -> None:
     win32gui.EnumWindows(winEnumHandler, None)
 
 
-def capture_window(window_title: str) -> np.ndarray:
+def capture_window(window_id: int | None = None, window_title: str | None = None) -> np.ndarray:
     """
     Captura a tela de uma janela específica e retorna a imagem como um array numpy.
+    A identificação da janela é feita pelo identificador ou pelo título.
 
     Args:
+        window_id (int): O identificador da janela a ser capturada.
         window_title (str): O título da janela a ser capturada.
 
     Returns:
         np.ndarray: Uma imagem da janela capturada como um array numpy.
 
     Raises:
-        Exception: Se a janela com o título especificado não for encontrada.
+        Exception: Se a janela com o título especificado não for encontrada ou
+        se não for especificado o identificador ou o título da janela.
     """
-    # Encontra a janela pelo título
-    hwnd = win32gui.FindWindow(None, window_title)
-    if not hwnd:
-        raise Exception(f"Janela com o título '{window_title}' não encontrada.")
+    if window_id is None:
+        if window_title is None:
+            raise Exception("Deve ser especificado o identificador ou o título da janela.")
+        # Encontra a janela pelo título
+        window_id = win32gui.FindWindow(None, window_title)
+        if not window_id:
+            raise Exception(f"Janela com o título '{window_title}' não encontrada.")
 
     # Obtém as dimensões da janela
-    left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+    left, top, right, bottom = win32gui.GetWindowRect(window_id)
     width = right - left
     height = bottom - top
 
