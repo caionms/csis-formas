@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 
 def save_results_to_json(
-    results: list[Results], file_path: str, frame_path: str | None = None
+    results: list[Results], file_path: str, classes_names: list[str], frame_path: str | None = None
 ) -> None:
     """
     Save YOLO inference results to a JSON file, adding a new entry with a timestamp.
@@ -25,13 +25,15 @@ def save_results_to_json(
     Args:
         results (List[Results]): The YOLO inference results.
         file_path (str): Path to the JSON file to save the results.
+        classes_names (List[str]): List of class names corresponding to the model output classes.
         frame_path (Optional[str]): Path to the frame image file, if available.
     """
-
     # Use list comprehension to collect detections above a confidence threshold
     detections = [
         {
-            "class": f"{box.cls_name} ({int(box.cls)})",  # Class name and number
+            "class": f"{classes_names[int(box.cls)]} ({int(box.cls)})"
+            if classes_names[int(box.cls)] is not None
+            else f"{int(box.cls)}",  # Class name and number
             "confidence": round(float(box.conf), 2),  # Detection confidence rounded to 2 decimals
             "bbox": box.xywh.tolist(),  # Bounding box coordinates (x, y, w, h)
         }
