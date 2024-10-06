@@ -9,29 +9,48 @@ from typing import Any
 
 import cv2 as cv
 import numpy as np
+from ultralytics.engine.results import Results
+
+from application.log_config import get_logger
+
+logger = get_logger(__name__)
 
 
-def save_results_to_json(results: list[Any], file_path: str) -> None:
+def save_results_to_json(
+    results: list[Results], file_path: str, frame_path: str | None = None
+) -> None:
     """
     Save YOLO inference results to a JSON file, adding a new entry with a timestamp.
 
     Args:
-        results (List[Any]): The YOLO inference results.
+        results (List[Results]): The YOLO inference results.
         file_path (str): Path to the JSON file to save the results.
+        frame_path (Optional[str]): Path to the frame image file, if available.
     """
+
+    # Use list comprehension to collect detections above a confidence threshold
     detections = [
         {
-            "class": int(box.cls),  # Detected class
-            "confidence": float(box.conf),  # Detection confidence
+            "class": f"{box.cls_name} ({int(box.cls)})",  # Class name and number
+            "confidence": round(float(box.conf), 2),  # Detection confidence rounded to 2 decimals
             "bbox": box.xywh.tolist(),  # Bounding box coordinates (x, y, w, h)
         }
         for result in results
         for box in result.boxes
+        if box.conf > 0.8  # Filter out low-confidence detections
     ]
 
-    data = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "detections": detections}
+    if not detections:
+        return
 
-    # Read existing JSON file content, or initialize an empty list
+    # Prepare data with timestamp and optional frame path
+    data = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "detections": detections,
+        "frame_path": frame_path,
+    }
+
+    # Read existing JSON file content or initialize an empty list
     file_data = _read_json_file(file_path)
 
     # Append new data to the list
@@ -74,13 +93,16 @@ def _write_json_file(file_path: str, data: list[dict[str, Any]]) -> None:
         json.dump(data, f, indent=4)
 
 
-def save_annotated_image(image: np.ndarray, folder_path: str) -> None:
+def save_annotated_image(image: np.ndarray, folder_path: str) -> str | None:
     """
     Save the annotated image with detections, naming it with the current timestamp.
 
     Args:
         image (np.ndarray): The annotated image to save.
         folder_path (str): Path to the folder where the image will be saved.
+
+    Returns:
+        Optional[str]: The path to the saved image file, or None if an error occurred.
     """
     # Ensure the directory exists
     os.makedirs(folder_path, exist_ok=True)
@@ -90,5 +112,10 @@ def save_annotated_image(image: np.ndarray, folder_path: str) -> None:
     file_name = f"detection_{timestamp}.png"
     file_path = os.path.join(folder_path, file_name)
 
-    # Save the annotated image
-    cv.imwrite(file_path, image)
+    try:
+        # Save the annotated image
+        cv.imwrite(file_path, image)
+        return file_path
+    except Exception:
+        logger.exception(f"Error saving annotated image: {file_path}")
+        return None
