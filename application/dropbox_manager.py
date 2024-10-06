@@ -240,6 +240,7 @@ class DropboxManager:
             if auth_err.error.is_expired_access_token():
                 logger.error("[DropboxManager][download] Token expirado. Tentando renovar...")
                 if self._refresh_access_token():
+                    self.dbx_client = dropbox.Dropbox(self.temporary_access_token)
                     metadata, res = self._attempt_download(dropbox_path)  # type: ignore
                     if res:
                         return self._save_to_file(local_file_path, res.content)
