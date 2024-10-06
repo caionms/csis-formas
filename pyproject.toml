@@ -23,7 +23,7 @@ mss = "*"
 #gui_automation = { git = "https://github.com/marcosboggia/gui_automation.git", branch = "master" }
 ultralytics = "*"
 #opencv-python-headless = "<4.10.0"
-opencv-python = "<4.10.0"
+opencv-python = "*"
 pyvirtualdisplay = "*"
 dropbox = "*"
 dynaconf = "*"

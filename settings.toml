@@ -6,7 +6,7 @@ public_safety = "/public_safety.pt"
 plates = "/plates.pt"
 yolov8x = "/yolov8x.pt"
 pose = "/yolov8x-pose.pt"
-paddleocr= "/25_ep"
+paddleocr= "/paddleocr"
 
 [paddleocr]
 rec_algorithm = "SVTR_LCNet"

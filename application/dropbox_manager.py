@@ -1,7 +1,12 @@
+"""
+Módulo de manipulação do dropbox.
+"""
+
 import base64
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import dropbox
 import requests
@@ -56,7 +61,8 @@ class DropboxManager:
             func (Callable[..., Any]): Função a ser decorada.
 
         Returns:
-            Callable[..., Any]: Função decorada que executa apenas se o cliente estiver inicializado.
+            Callable[..., Any]: Função decorada que executa apenas se o
+            cliente estiver inicializado.
         """
 
         def wrapper(self, *args, **kwargs) -> Any:
@@ -78,23 +84,28 @@ class DropboxManager:
         """
         try:
             if Path(file_path).exists():
-                with open(file_path, "r") as file:
+                with open(file_path) as file:
                     config = toml.load(file)
             else:
                 config = {}
 
-            if 'dropbox' in config and 'access_token' in config['dropbox']:
-                config['dropbox']['access_token'] = new_token
+            if "dropbox" in config and "access_token" in config["dropbox"]:
+                config["dropbox"]["access_token"] = new_token
             else:
-                config['dropbox'] = {'access_token': new_token}
+                config["dropbox"] = {"access_token": new_token}
 
             with open(file_path, "w") as file:
                 toml.dump(config, file)
 
-            logger.info(f"[DropboxManager][update_access_token] Access token atualizado com sucesso: {new_token}")
+            logger.info(
+                f"[DropboxManager][update_access_token] Access token atualizado "
+                f"com sucesso: {new_token}"
+            )
 
         except Exception:
-            logger.exception("[DropboxManager][update_access_token] Erro ao atualizar o access_token.")
+            logger.exception(
+                "[DropboxManager][update_access_token] Erro ao atualizar o access_token."
+            )
 
     def get_base64_authorization(self) -> str:
         """Gera a string de autorização Base64.
@@ -104,7 +115,7 @@ class DropboxManager:
         """
         return base64.b64encode(f"{self.app_key}:{self.app_secret}".encode()).decode()
 
-    def _request_token(self, data: dict) -> Optional[dict]:
+    def _request_token(self, data: dict) -> dict | None:
         """Envia uma requisição para a API do Dropbox para obter o token.
 
         Args:
@@ -115,13 +126,11 @@ class DropboxManager:
         """
         try:
             headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': f"Basic {self.get_base64_authorization()}"
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": f"Basic {self.get_base64_authorization()}",
             }
             response = requests.post(
-                'https://api.dropbox.com/oauth2/token',
-                headers=headers,
-                data=data
+                "https://api.dropbox.com/oauth2/token", headers=headers, data=data
             )
             response.raise_for_status()
             return response.json()
@@ -138,27 +147,35 @@ class DropboxManager:
             bool: True se o token foi renovado com sucesso, False caso contrário.
         """
         data = {
-            'refresh_token': self.refresh_token,
-            'grant_type': 'refresh_token',
+            "refresh_token": self.refresh_token,
+            "grant_type": "refresh_token",
         }
 
         try:
             response = self._request_token(data)
-            if response and not response.get('error'):
-                self.temporary_access_token = response['access_token']
+            if response and not response.get("error"):
+                self.temporary_access_token = response["access_token"]
                 logger.info(
-                    f"[DropboxManager][_refresh_access_token] Access token renovado com sucesso: {self.temporary_access_token}")
+                    f"[DropboxManager][_refresh_access_token] Access token renovado com "
+                    f"sucesso: {self.temporary_access_token}"
+                )
                 secrets_local_path = Path(__file__).parents[1] / ".secrets.local.toml"
                 self.update_access_token(self.temporary_access_token, str(secrets_local_path))
                 return True
             else:
-                logger.error(f"[DropboxManager][_refresh_access_token] Erro ao renovar access token: {response}")
+                logger.error(
+                    f"[DropboxManager][_refresh_access_token] Erro ao renovar access "
+                    f"token: {response}"
+                )
         except Exception:
-            logger.error("[DropboxManager][_refresh_access_token] Falha desconhecida ao renovar o access token.")
+            logger.error(
+                "[DropboxManager][_refresh_access_token] Falha desconhecida ao renovar "
+                "o access token."
+            )
 
         return False
 
-    def _attempt_download(self, dropbox_path: str) -> Optional[tuple]:
+    def _attempt_download(self, dropbox_path: str) -> tuple | None:
         """
         Tenta fazer o download de um arquivo do Dropbox.
 
@@ -174,7 +191,8 @@ class DropboxManager:
             logger.exception(f"[DropboxManager][_attempt_download] Erro ao baixar {dropbox_path}.")
             return None
 
-    def _save_to_file(self, local_file_path: str, content: bytes) -> bool:
+    @staticmethod
+    def _save_to_file(local_file_path: str, content: bytes) -> bool:
         """
         Salva o conteúdo baixado em um arquivo local.
 
@@ -191,9 +209,13 @@ class DropboxManager:
             logger.info(f"[DropboxManager][_save_to_file] Arquivo salvo em {local_file_path}.")
             return True
         except FileNotFoundError:
-            logger.exception(f"[DropboxManager][_save_to_file] Caminho local {local_file_path} não encontrado.")
+            logger.exception(
+                f"[DropboxManager][_save_to_file] Caminho local {local_file_path} não encontrado."
+            )
         except Exception:
-            logger.exception("[DropboxManager][_save_to_file] Erro desconhecido ao salvar o arquivo.")
+            logger.exception(
+                "[DropboxManager][_save_to_file] Erro desconhecido ao salvar o arquivo."
+            )
         return False
 
     @ensure_client
@@ -211,14 +233,15 @@ class DropboxManager:
         logger.info(f"[DropboxManager][download] Iniciando o download de {dropbox_path}.")
 
         try:
-            metadata, res = self._attempt_download(dropbox_path)
+            metadata, res = self._attempt_download(dropbox_path)  # type: ignore
             if res:
                 return self._save_to_file(local_file_path, res.content)
         except AuthError as auth_err:
             if auth_err.error.is_expired_access_token():
                 logger.error("[DropboxManager][download] Token expirado. Tentando renovar...")
                 if self._refresh_access_token():
-                    metadata, res = self._attempt_download(dropbox_path)
+                    self.dbx_client = dropbox.Dropbox(self.temporary_access_token)
+                    metadata, res = self._attempt_download(dropbox_path)  # type: ignore
                     if res:
                         return self._save_to_file(local_file_path, res.content)
             else:
@@ -226,7 +249,9 @@ class DropboxManager:
         except ApiError:
             logger.exception(f"[DropboxManager][download] Erro da API ao baixar {dropbox_path}.")
         except Exception:
-            logger.exception(f"[DropboxManager][download] Erro desconhecido ao baixar {dropbox_path}.")
+            logger.exception(
+                f"[DropboxManager][download] Erro desconhecido ao baixar {dropbox_path}."
+            )
 
         return False
 
@@ -243,7 +268,10 @@ class DropboxManager:
             bool: Retorna True se o download foi bem-sucedido, False caso contrário.
         """
         try:
-            logger.info(f"[DropboxManager][download_folder] Iniciando o download da pasta {dropbox_folder_path}.")
+            logger.info(
+                f"[DropboxManager][download_folder] Iniciando o download da "
+                f"pasta {dropbox_folder_path}."
+            )
 
             if not os.path.exists(local_folder_path):
                 os.makedirs(local_folder_path)
@@ -256,18 +284,21 @@ class DropboxManager:
                 dropbox_entry_path = entry.path_lower
                 local_entry_path = os.path.join(local_folder_path, entry.name)
 
-                if isinstance(entry, dropbox.files.FileMetadata):
+                if isinstance(entry, dropbox.dropbox_client.files.FileMetadata):
                     # Se for um arquivo, faz o download
                     self.download(local_entry_path, dropbox_entry_path)
-                elif isinstance(entry, dropbox.files.FolderMetadata):
+                elif isinstance(entry, dropbox.dropbox_client.files.FolderMetadata):
                     # Se for uma subpasta, chama a função recursivamente
                     self.download_folder(local_entry_path, dropbox_entry_path)
 
             return True
         except Exception:
             logger.exception(
-                f"[DropboxManager][download_folder] Erro desconhecido ao baixar a pasta {dropbox_folder_path}.")
+                f"[DropboxManager][download_folder] Erro desconhecido ao baixar "
+                f"a pasta {dropbox_folder_path}."
+            )
             return False
+
     @ensure_client
     def upload(self, local_file_path: str, dropbox_path: str) -> bool:
         """
@@ -286,22 +317,32 @@ class DropboxManager:
             Exception: Para outros erros não especificados.
         """
         try:
-            logger.info(f"[DropboxManager][upload] Iniciando o upload de {local_file_path} para {dropbox_path}.")
+            logger.info(
+                f"[DropboxManager][upload] Iniciando o upload de {local_file_path} "
+                f"para {dropbox_path}."
+            )
             with open(local_file_path, "rb") as file:
                 self.dbx_client.files_upload(file.read(), dropbox_path)
-            logger.info(f"[DropboxManager][upload] Upload concluído: {local_file_path} enviado para {dropbox_path}.")
+            logger.info(
+                f"[DropboxManager][upload] Upload concluído: {local_file_path} enviado "
+                f"para {dropbox_path}."
+            )
             return True
         except ApiError:
             logger.exception(f"[DropboxManager][upload] Erro da API ao enviar {local_file_path}.")
         except FileNotFoundError:
-            logger.exception(f"[DropboxManager][upload] Arquivo local {local_file_path} não encontrado.")
+            logger.exception(
+                f"[DropboxManager][upload] Arquivo local {local_file_path} não encontrado."
+            )
         except Exception:
             logger.exception(
-                f"[DropboxManager][upload] Erro desconhecido ao enviar {local_file_path} para {dropbox_path}.")
+                f"[DropboxManager][upload] Erro desconhecido ao enviar {local_file_path} "
+                f"para {dropbox_path}."
+            )
         return False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     manager = DropboxManager(DROPBOX_INITIAL_ACCESS_TOKEN)
     manager._refresh_access_token()
     print(manager.temporary_access_token)

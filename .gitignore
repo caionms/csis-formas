@@ -2,3 +2,4 @@
 *.local.toml
 dev
 models
+data
