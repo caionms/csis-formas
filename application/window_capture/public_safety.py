@@ -4,12 +4,10 @@ Módulo que executa detecção de segurança pública em uma janela.
 
 import os
 from pathlib import Path
-from time import sleep, time
+from time import time
 
 import cv2 as cv
 import torch
-import win32con
-import win32gui
 from ultralytics import YOLO
 
 from application import (
@@ -19,7 +17,7 @@ from application import (
 from application.dropbox_manager import DropboxManager
 from application.log_config import get_logger
 from application.utils.dashboard_utils import save_annotated_image, save_results_to_json
-from application.utils.window_capture_utils import capture_window
+from application.utils.window_capture_utils import capture_window, setup_capture_window
 
 logger = get_logger(__name__)
 
@@ -51,23 +49,8 @@ def main(
     # Doing this because I'll be putting the files from each video in their own folder on GitHub
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    if window_title is None:
-        hwnd = win32gui.GetDesktopWindow()
-    else:
-        hwnd = win32gui.FindWindow(None, window_title)
-        if not hwnd:
-            raise Exception(f"Window not found: {window_title}")
-
-    # Restaura a janela se estiver minimizada, mas sem redimensioná-la
-    win32gui.ShowWindow(hwnd, win32con.SW_SHOWNOACTIVATE)
-
-    # Coloca a janela no topo da pilha de janelas sem dar foco e sem redimensionar
-    win32gui.SetWindowPos(
-        hwnd, win32con.HWND_TOP, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
-    )
-
-    # Aguarda um momento para garantir que a janela esteja visível
-    sleep(0.5)
+    # Prepara captura de janela
+    window_id = setup_capture_window(window_title)
 
     # Load the model
     model_filename = PUBLIC_SAFETY_MODEL_DROPBOX_PATH.split("/")[-1]
@@ -97,7 +80,7 @@ def main(
     while True:
         loop_time = time()
 
-        screenshot = capture_window(window_id=hwnd)
+        screenshot = capture_window(window_id=window_id)
 
         # Run YOLOv8 inference on the frame
         results = model(screenshot)

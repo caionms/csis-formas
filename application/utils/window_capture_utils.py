@@ -2,8 +2,11 @@
 Módulo de utilitários para captura de janela do windows.
 """
 
+from time import sleep
+
 import mss
 import numpy as np
+import win32con
 import win32gui
 
 
@@ -20,6 +23,43 @@ def list_window_names() -> None:
             print(hex(hwnd), win32gui.GetWindowText(hwnd))
 
     win32gui.EnumWindows(winEnumHandler, None)
+
+
+def setup_capture_window(window_title: str | None) -> int:
+    """
+    Configura a janela para captura de tela, restaurando a janela se necessário
+    e garantindo que ela esteja visível.
+
+    Args:
+        window_title (Optional[str]): O título da janela a ser capturada.
+        Se None, captura a área de trabalho.
+
+    Returns:
+        int: O identificador da janela (hwnd) a ser capturada.
+
+    Raises:
+        ValueError: Se a janela com o título especificado não for encontrada.
+    """
+    hwnd = (
+        win32gui.GetDesktopWindow()
+        if window_title is None
+        else win32gui.FindWindow(None, window_title)
+    )
+    if not hwnd:
+        raise ValueError(f"Window not found: {window_title}")
+
+    # Restaura a janela se estiver minimizada, mas sem redimensioná-la
+    win32gui.ShowWindow(hwnd, win32con.SW_SHOWNOACTIVATE)
+
+    # Coloca a janela no topo da pilha sem dar foco e sem redimensionar
+    win32gui.SetWindowPos(
+        hwnd, win32con.HWND_TOP, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+    )
+
+    # Aguarda um momento para garantir que a janela esteja visível
+    sleep(0.5)
+
+    return hwnd
 
 
 def capture_window(window_id: int | None = None, window_title: str | None = None) -> np.ndarray:
