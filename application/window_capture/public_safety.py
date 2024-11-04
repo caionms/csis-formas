@@ -7,23 +7,26 @@ from pathlib import Path
 from time import time
 
 import cv2 as cv
-import torch
-from ultralytics import YOLO
 
 from application import (
     DROPBOX_ACCESS_TOKEN,
     PUBLIC_SAFETY_MODEL_DROPBOX_PATH,
 )
-from application.dropbox_manager import DropboxManager
 from application.log_config import get_logger
 from application.utils.dashboard_utils import save_annotated_image, save_results_to_json
+from application.utils.model_utils import (
+    NoModelAvailableException,
+    download_model,
+    initialize_yolo_model,
+)
 from application.utils.window_capture_utils import capture_window, setup_capture_window
+from application.window_capture.config import (
+    DATA_FOLDER_PATH,
+    FRAMES_FOLDER_PATH,
+    MODELS_FOLDER_PATH,
+)
 
 logger = get_logger(__name__)
-
-DATA_FOLDER_PATH = Path(__file__).parents[1] / "data"
-FRAMES_FOLDER_PATH = DATA_FOLDER_PATH / "frames"
-MODELS_FOLDER_PATH = Path(__file__).parents[1] / "models"
 
 
 def main(
@@ -55,20 +58,14 @@ def main(
     # Load the model
     model_filename = PUBLIC_SAFETY_MODEL_DROPBOX_PATH.split("/")[-1]
     model_path = MODELS_FOLDER_PATH / model_filename
-    if not model_path.is_file():
-        dropbox_manager = DropboxManager(access_token=DROPBOX_ACCESS_TOKEN)
-        if not dropbox_manager.download(
-            dropbox_path=PUBLIC_SAFETY_MODEL_DROPBOX_PATH,
-            local_file_path=str(model_path),
-        ):
-            logger.error(
-                "[PublicSafetyDetection] No model available and unable to download the model "
-                "from Dropbox. Detection cannot be performed."
-            )
-            return
-    model = YOLO(model_path)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
+
+    try:
+        download_model(model_path, PUBLIC_SAFETY_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN)
+    except NoModelAvailableException as e:
+        logger.error(f"[PublicSafetyDetection] {e} Detection cannot be performed.")
+        return
+
+    model = initialize_yolo_model(model_path)
 
     # Obtem o nome das classes
     classes_names = model.names
