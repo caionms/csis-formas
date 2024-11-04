@@ -4,10 +4,13 @@ Módulo de utilitários para captura de janela do windows.
 
 from time import sleep
 
+import cv2 as cv
 import mss
 import numpy as np
 import win32con
 import win32gui
+
+FIXED_SIZE = (1280, 760)  # Tamanho fixo para lidar com erro de Assertion failed
 
 
 def list_window_names() -> None:
@@ -99,8 +102,10 @@ def capture_window(window_id: int | None = None, window_title: str | None = None
         # Converte a captura para um array numpy
         img = np.array(screenshot)
 
-        # Remove o canal alfa para converter a imagem para 3 canais (RGB) compatível como YOLO
+        # Remove o canal alfa para converter a imagem para 3 canais (RGB) compatível com o YOLO
         img = img[:, :, :3]
+
+    img = cv.resize(img, FIXED_SIZE, interpolation=cv.INTER_AREA)
 
     return img
 
