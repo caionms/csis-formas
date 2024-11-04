@@ -25,12 +25,13 @@ from application.utils.model_utils import (
 )
 from application.utils.plot_utils import plot_bbox
 from application.utils.window_capture_utils import capture_window, setup_capture_window
+from application.window_capture.config import (
+    DATA_FOLDER_PATH,
+    FRAMES_FOLDER_PATH,
+    MODELS_FOLDER_PATH,
+)
 
 logger = get_logger(__name__)
-
-DATA_FOLDER_PATH = Path(__file__).parents[1] / "data"
-FRAMES_FOLDER_PATH = DATA_FOLDER_PATH / "frames"
-MODELS_FOLDER_PATH = Path(__file__).parents[1] / "models"
 
 TrackingData = dict[int, dict[str, Any]]
 
