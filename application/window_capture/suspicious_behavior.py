@@ -183,7 +183,7 @@ def main(
                         label = f"{track_id}: {round(total_time,2)}s (suspect)"
                         color = (0, 0, 255)  # Red for suspicious persons
                     else:
-                        label = f"{track_id}: {total_time}s"
+                        label = f"{track_id}: {round(total_time,2)}s"
                 else:
                     # For vehicles, display the confidence score
                     label = f"vehicle: {confidence:.2f}"
