@@ -10,17 +10,19 @@ from typing import Any
 
 import cv2 as cv
 import numpy as np
-import torch
 import yaml
-from ultralytics import YOLO
 
 from application import (
     DROPBOX_ACCESS_TOKEN,
     YOLOV8X_MODEL_DROPBOX_PATH,
 )
-from application.dropbox_manager import DropboxManager
 from application.log_config import get_logger
 from application.utils.dashboard_utils import save_annotated_image, save_results_to_json
+from application.utils.model_utils import (
+    NoModelAvailableException,
+    download_model,
+    initialize_yolo_model,
+)
 from application.utils.plot_utils import plot_bbox
 from application.utils.window_capture_utils import capture_window, setup_capture_window
 
@@ -128,20 +130,14 @@ def main(
     # Load the model
     model_filename = YOLOV8X_MODEL_DROPBOX_PATH.split("/")[-1]
     model_path = MODELS_FOLDER_PATH / model_filename
-    if not model_path.is_file():
-        dropbox_manager = DropboxManager(access_token=DROPBOX_ACCESS_TOKEN)
-        if not dropbox_manager.download(
-            dropbox_path=YOLOV8X_MODEL_DROPBOX_PATH,
-            local_file_path=str(model_path),
-        ):
-            logger.error(
-                "[SuspiciousBehaviorDetection] No model available and unable to download the model "
-                "from Dropbox. Detection cannot be performed."
-            )
-            return
-    model = YOLO(model_path)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
+
+    try:
+        download_model(model_path, YOLOV8X_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN)
+    except NoModelAvailableException as e:
+        logger.error(f"[SuspiciousBehaviorDetection] {e} Detection cannot be performed.")
+        return
+
+    model = initialize_yolo_model(model_path)
 
     # Obtem o nome das classes
     classes_names = model.names
