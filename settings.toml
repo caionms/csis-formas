@@ -3,12 +3,14 @@ loglevel="INFO"
 
 [dropbox.models]
 public_safety = "/public_safety.pt"
-plates = "/plates.pt"
+plate_yolo_detection = "/plates_yolo.pt"
 yolov8x = "/yolov8x.pt"
 pose = "/yolov8x-pose.pt"
-paddleocr= "/paddleocr"
+plate_paddle_recognition = "/paddleocr"
+plate_paddle_detection = "/en_PP-OCRv3_det_infer"
 
 [paddleocr]
 rec_algorithm = "SVTR_LCNet"
 rec_image_shape = "3,48,320"
+use_space_char = false
 use_gpu = false
