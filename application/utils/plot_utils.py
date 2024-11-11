@@ -1,10 +1,10 @@
-from typing import List, Optional, Tuple
+"""Módulo de utilitários para plotagem de caixas delimitadoras e rótulos em imagens."""
 
 import cv2
 import numpy as np
 
 
-def colors(index: int, bgr: bool = True) -> Tuple[int, int, int]:
+def colors(index: int, bgr: bool = True) -> tuple[int, int, int]:
     """
     Generates a color based on the given index, avoiding red tones.
 
@@ -33,11 +33,11 @@ def colors(index: int, bgr: bool = True) -> Tuple[int, int, int]:
 
 
 def plot_bboxes(
-        img: np.ndarray,
-        results: List,
-        color: Optional[Tuple[int, int, int]] = None,
-        label: Optional[str] = None,
-        line_thickness: int = 3
+    img: np.ndarray,
+    results: list,
+    color: tuple[int, int, int] | None = None,
+    label: str | None = None,
+    line_thickness: int = 3,
 ) -> np.ndarray:
     """
     Plots bounding boxes and labels on an image.
@@ -45,8 +45,10 @@ def plot_bboxes(
     Args:
         img (np.ndarray): The image on which to plot the bounding boxes.
         results (List): Detection results containing bounding boxes and labels.
-        color (Optional[Tuple[int, int, int]]): Color for the bounding boxes. If None, color is generated based on class ID.
-        label (Optional[str]): Text label to display on the bounding boxes. If None, labels are generated based on class names and confidence.
+        color (Optional[Tuple[int, int, int]]): Color for the bounding boxes. If None, color is
+        generated based on class ID.
+        label (Optional[str]): Text label to display on the bounding boxes. If None, labels are
+        generated based on class names and confidence.
         line_thickness (int): Thickness of the bounding box lines.
 
     Returns:
@@ -71,7 +73,9 @@ def plot_bboxes(
             top_left, bottom_right = (left, top), (right, bottom)
 
             # Plota a caixa delimitadora
-            cv2.rectangle(img, top_left, bottom_right, box_color, thickness=tl, lineType=cv2.LINE_AA)
+            cv2.rectangle(
+                img, top_left, bottom_right, box_color, thickness=tl, lineType=cv2.LINE_AA
+            )
 
             # Se existir um label, plota ele
             if label_text:
@@ -86,22 +90,37 @@ def plot_bboxes(
                 text_top_right = (left + text_size[0], top)
 
                 # Plota o retângulo do texto
-                cv2.rectangle(img, text_bottom_left, text_top_right, box_color, thickness=-1, lineType=cv2.LINE_AA)
+                cv2.rectangle(
+                    img,
+                    text_bottom_left,
+                    text_top_right,
+                    box_color,
+                    thickness=-1,
+                    lineType=cv2.LINE_AA,
+                )
 
                 # Plota o texto definido
-                cv2.putText(img, label_text, (left, top - 5), cv2.FONT_HERSHEY_SIMPLEX, tl / 3, (225, 255, 255), tf,
-                            cv2.LINE_AA)
+                cv2.putText(
+                    img,
+                    label_text,
+                    (left, top - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    tl / 3,
+                    (225, 255, 255),
+                    tf,
+                    cv2.LINE_AA,
+                )
 
     return img
 
 
 def plot_bbox(
-        img: np.ndarray,
-        class_id: int,
-        box_coordinates: Tuple[int, int, int, int],
-        label: str,
-        color: Optional[Tuple[int, int, int]] = None,
-        line_thickness: int = 3
+    img: np.ndarray,
+    class_id: int,
+    box_coordinates: tuple[int, int, int, int],
+    label: str,
+    color: tuple[int, int, int] | None = None,
+    line_thickness: int = 3,
 ) -> np.ndarray:
     """
     Plots bounding box and label on an image.
@@ -109,9 +128,11 @@ def plot_bbox(
     Args:
         img (np.ndarray): The image on which to plot the bounding boxes.
         class_id (int): Class ID for the bounding box.
-        box_coordinates (Tuple[int, int, int, int]): Bounding box coordinates in (left, top, right, bottom) format.
+        box_coordinates (Tuple[int, int, int, int]): Bounding box coordinates in
+        (left, top, right, bottom) format.
         label (Optional[str]): Text label to display on the bounding box.
-        color (Optional[Tuple[int, int, int]]): Color for the bounding boxes. If None, color is generated based on class ID.
+        color (Optional[Tuple[int, int, int]]): Color for the bounding boxes. If None, color
+        is generated based on class ID.
         line_thickness (int): Thickness of the bounding box lines.
 
     Returns:
@@ -130,7 +151,9 @@ def plot_bbox(
     bottom_right = (right, bottom)
 
     # Draw the bounding box
-    cv2.rectangle(img, top_left, bottom_right, box_color, thickness=tl, lineType=cv2.LINE_AA)
+    cv2.rectangle(
+        img=img, pt1=top_left, pt2=bottom_right, color=box_color, thickness=tl, lineType=cv2.LINE_AA
+    )
 
     # Set font thickness and size for the label text
     tf = max(tl - 1, 1)
@@ -143,10 +166,25 @@ def plot_bbox(
     text_top_right = (left + text_size[0], top)
 
     # Draw the rectangle for the label background
-    cv2.rectangle(img, text_bottom_left, text_top_right, box_color, thickness=-1, lineType=cv2.LINE_AA)
+    cv2.rectangle(
+        img=img,
+        pt1=text_bottom_left,
+        pt2=text_top_right,
+        color=box_color,
+        thickness=-1,
+        lineType=cv2.LINE_AA,
+    )
 
     # Draw the label text
-    cv2.putText(img, label, (left, top - 5), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (225, 255, 255), tf,
-                cv2.LINE_AA)
+    cv2.putText(
+        img,
+        label,
+        (left, top - 5),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        text_scale,
+        (225, 255, 255),
+        tf,
+        cv2.LINE_AA,
+    )
 
     return img
