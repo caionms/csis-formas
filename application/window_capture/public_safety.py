@@ -20,7 +20,7 @@ from application.utils.model_utils import (
     initialize_yolo_model,
 )
 from application.utils.window_capture_utils import capture_window, setup_capture_window
-from application.window_capture.config import (
+from application.window_capture.wc_config import (
     DATA_FOLDER_PATH,
     FRAMES_FOLDER_PATH,
     MODELS_FOLDER_PATH,
