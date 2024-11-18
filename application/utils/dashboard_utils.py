@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 def save_results_to_json(
     results: list[Results],
     file_path: str,
-    classes_names: list[str],
+    classes_names: dict[int, str],
     model_name: str,
     frame_path: str | None = None,
 ) -> None:
