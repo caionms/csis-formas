@@ -208,15 +208,27 @@ def main(
                             formatted_plates.append(formatted_plate)
                     if formatted_plates:
                         track_data["final_plate"] = calculate_correct_plate(formatted_plates)
-                        track_data["registered"] = True
-                        save_plate_results_to_json(
-                            file_path=str(output_json_path),
-                            type_of_camera=type_of_camera,
-                            plate_text=track_data["final_plate"],
-                            plate_type=track_data["plate_type"],
-                            camera_location=camera_location,
-                            frame_path=None,
-                        )
+                        try:
+                            save_plate_results_to_json(
+                                file_path=str(output_json_path),
+                                type_of_camera=type_of_camera,
+                                plate_text=track_data["final_plate"],
+                                plate_type=track_data["plate_type"],
+                                camera_location=camera_location,
+                                frame_path=None,
+                            )
+                            track_data["registered"] = True
+                        except Exception:
+                            logger.exception("Error saving plate results to JSON.")
+                            track_data["registered"] = False
+
+            # Remove as placas já registradas
+            keys_to_remove = [
+                key for key, value in tracking_data.items() if value.get("registered", False)
+            ]
+            for key in keys_to_remove:
+                del tracking_data[key]
+
             last_run_time = time()
 
         # Debug da taxa de atualização
