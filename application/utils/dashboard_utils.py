@@ -12,6 +12,7 @@ import numpy as np
 from ultralytics.engine.results import Results
 
 from application.log_config import get_logger
+from application.utils.plate_utils import PlateType, VehicleEnum
 
 logger = get_logger(__name__)
 
@@ -128,3 +129,39 @@ def save_annotated_image(image: np.ndarray, folder_path: str) -> str | None:
     except Exception:
         logger.exception(f"Error saving annotated image: {file_path}")
         return None
+
+
+def save_plate_results_to_json(
+    file_path: str,
+    type_of_camera: VehicleEnum,
+    plate_text: str,
+    plate_type: PlateType,
+    frame_path: str | None = None,
+) -> None:
+    """
+    Save plate recognition results to a JSON file, adding a new entry with a timestamp.
+
+    Args:
+        file_path (str): Path to the JSON file to save the results.
+        type_of_camera (VehicleEnum): The type of camera used for plate recognition
+        plate_text (str): The recognized plate text.
+        plate_type (PlateType): The type of plate detected.
+        frame_path (Optional[str]): Path to the frame image file, if available.
+    """
+    # Prepare data with timestamp and optional frame path
+    data = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "plate_text": plate_text,
+        "in_or_out": type_of_camera.value,
+        "plate_type": plate_type.value,
+        "frame_path": frame_path,
+    }
+
+    # Read existing JSON file content or initialize an empty list
+    file_data = _read_json_file(file_path)
+
+    # Append new data to the list
+    file_data.append(data)
+
+    # Write updated data back to the JSON file
+    _write_json_file(file_path, file_data)
