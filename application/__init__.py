@@ -14,5 +14,7 @@ PLATE_PADDLE_RECOGNITION_MODEL_DROPBOX_PATH = settings.dropbox.models.plate_padd
 """Path do modelo de reconhecimento de texto em placas no Dropbox."""
 PLATE_PADDLE_DETECTION_MODEL_DROPBOX_PATH = settings.dropbox.models.plate_paddle_detection
 """Path do modelo de detecção de texto em placas no Dropbox."""
+PLATE_PADDLE_CLS_MODEL_DROPBOX_PATH = settings.dropbox.models.plate_paddle_cls
+"""Path do modelo de classificação de texto em placas no Dropbox."""
 DROPBOX_ACCESS_TOKEN = settings.dropbox.access_token
 """Token de acesso do Dropbox."""
