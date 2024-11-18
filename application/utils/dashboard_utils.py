@@ -22,6 +22,7 @@ def save_results_to_json(
     file_path: str,
     classes_names: dict[int, str],
     model_name: str,
+    camera_location: str,
     frame_path: str | None = None,
 ) -> None:
     """
@@ -32,6 +33,7 @@ def save_results_to_json(
         file_path (str): Path to the JSON file to save the results.
         classes_names (List[str]): List of class names corresponding to the model output classes.
         model_name (str): The name of the model used for inference.
+        camera_location (str): The location of the camera that captured the frame.
         frame_path (Optional[str]): Path to the frame image file, if available.
     """
     # Use list comprehension to collect detections above a confidence threshold
@@ -58,6 +60,7 @@ def save_results_to_json(
         "detections": detections,
         "frame_path": frame_path,
         "model": model_name,
+        "camera_location": camera_location,
     }
 
     # Read existing JSON file content or initialize an empty list
@@ -136,6 +139,7 @@ def save_plate_results_to_json(
     type_of_camera: VehicleEnum,
     plate_text: str,
     plate_type: PlateType,
+    camera_location: str = "Portaria 1 - Ondina",
     frame_path: str | None = None,
 ) -> None:
     """
@@ -146,6 +150,7 @@ def save_plate_results_to_json(
         type_of_camera (VehicleEnum): The type of camera used for plate recognition
         plate_text (str): The recognized plate text.
         plate_type (PlateType): The type of plate detected.
+        camera_location (str): The location of the camera that captured the frame.
         frame_path (Optional[str]): Path to the frame image file, if available.
     """
     # Prepare data with timestamp and optional frame path
@@ -155,6 +160,7 @@ def save_plate_results_to_json(
         "in_or_out": type_of_camera.value,
         "plate_type": plate_type.value,
         "frame_path": frame_path,
+        "camera_location": camera_location,
     }
 
     # Read existing JSON file content or initialize an empty list

@@ -33,6 +33,7 @@ def main(
     window_title: str | None = None,
     output_json_path: Path = DATA_FOLDER_PATH / "output.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
+    camera_location: str = "Portaria 1 - Ondina",
 ) -> None:
     """
     Captura continuamente a tela de uma janela específica ou da área de trabalho,
@@ -47,6 +48,7 @@ def main(
         output_json_path (Path): O caminho do arquivo JSON onde os resultados das
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
+        camera_location (str): O local da câmera onde a detecção está sendo realizada.
     """
     # Change the working directory to the folder this script is in.
     # Doing this because I'll be putting the files from each video in their own folder on GitHub
@@ -95,6 +97,7 @@ def main(
                 frame_path=frame_path,
                 model_name=model_filename,
                 classes_names=classes_names,
+                camera_location=camera_location,
             )
             last_save_time = time()
 

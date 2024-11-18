@@ -84,6 +84,7 @@ def main(
     output_json_path: Path = DATA_FOLDER_PATH / "output_plates.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     type_of_camera: VehicleEnum = VehicleEnum.IN,
+    camera_location: str = "Portaria 1 - Ondina",
 ) -> None:
     """
     Captura continuamente a tela de uma janela específica ou da área de trabalho,
@@ -100,6 +101,7 @@ def main(
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
         type_of_camera (VehicleEnum): Indica se a câmera é uma entrada ou saída.
+        camera_location (str): O local da câmera onde a detecção está sendo realizada.
     """
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -212,6 +214,7 @@ def main(
                             type_of_camera=type_of_camera,
                             plate_text=track_data["final_plate"],
                             plate_type=track_data["plate_type"],
+                            camera_location=camera_location,
                             frame_path=None,
                         )
             last_run_time = time()
