@@ -82,7 +82,7 @@ def remove_stale_tracks(
     stale_ids = [
         track_id
         for track_id, data in tracking_data.items()
-        if current_time - data["last_seen_time"] > expiration_time
+        if (current_time - data["last_seen_time"] > expiration_time) or data["alert_sent"]
     ]
 
     for stale_id in stale_ids:
