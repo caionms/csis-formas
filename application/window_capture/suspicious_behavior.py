@@ -14,7 +14,7 @@ import yaml
 
 from application import (
     DROPBOX_ACCESS_TOKEN,
-    YOLOV8X_MODEL_DROPBOX_PATH,
+    YOLO11X_MODEL_DROPBOX_PATH,
 )
 from application.log_config import get_logger
 from application.utils.dashboard_utils import save_annotated_image, save_results_to_json
@@ -131,11 +131,11 @@ def main(
     window_id = setup_capture_window(window_title)
 
     # Load the model
-    model_filename = YOLOV8X_MODEL_DROPBOX_PATH.split("/")[-1]
+    model_filename = YOLO11X_MODEL_DROPBOX_PATH.split("/")[-1]
     model_path = MODELS_FOLDER_PATH / model_filename
 
     try:
-        download_model(model_path, YOLOV8X_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN)
+        download_model(model_path, YOLO11X_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN)
     except NoModelAvailableException as e:
         logger.error(f"[SuspiciousBehaviorDetection] {e} Detection cannot be performed.")
         return

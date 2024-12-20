@@ -23,7 +23,8 @@ def list_window_names() -> None:
 
     def winEnumHandler(hwnd: int, ctx: None) -> None:
         if win32gui.IsWindowVisible(hwnd):
-            print(hex(hwnd), win32gui.GetWindowText(hwnd))
+            # print(hex(hwnd), win32gui.GetWindowText(hwnd))
+            print(win32gui.GetWindowText(hwnd))
 
     win32gui.EnumWindows(winEnumHandler, None)
 

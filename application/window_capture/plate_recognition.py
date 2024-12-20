@@ -54,6 +54,7 @@ def add_or_update_ocr(
     """
     Adiciona ou atualiza OCRs e o estado 'registered' para um dado track_id.
 
+    :param plate_type: Tipo da placa
     :param tracking_data: O dicionário que guarda os dados de rastreamento.
     :param track_id: O identificador único do rastreamento.
     :param ocrs: Lista de OCRs para adicionar.

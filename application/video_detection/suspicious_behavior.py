@@ -13,7 +13,7 @@ import torch
 import yaml
 from ultralytics import YOLO
 
-from application import DROPBOX_ACCESS_TOKEN, YOLOV8X_MODEL_DROPBOX_PATH
+from application import DROPBOX_ACCESS_TOKEN, YOLO11X_MODEL_DROPBOX_PATH
 from application.dropbox_manager import DropboxManager
 from application.log_config import get_logger
 from application.utils.plot_utils import plot_bbox
@@ -137,12 +137,12 @@ def main(
         )
 
     # Load the model
-    model_filename = YOLOV8X_MODEL_DROPBOX_PATH.split("/")[-1]
+    model_filename = YOLO11X_MODEL_DROPBOX_PATH.split("/")[-1]
     model_path = Path(__file__).parents[1] / "models" / model_filename
     if not model_path.is_file():
         dropbox_manager = DropboxManager(access_token=DROPBOX_ACCESS_TOKEN)
         if not dropbox_manager.download(
-            dropbox_path=YOLOV8X_MODEL_DROPBOX_PATH,
+            dropbox_path=YOLO11X_MODEL_DROPBOX_PATH,
             local_file_path=str(model_path),
         ):
             logger.error(
