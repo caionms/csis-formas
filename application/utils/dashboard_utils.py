@@ -24,6 +24,7 @@ def save_results_to_json(
     model_name: str,
     camera_location: str,
     frame_path: str | None = None,
+    suspect_ids: list[str] | None = None,
 ) -> None:
     """
     Save YOLO inference results to a JSON file, adding a new entry with a timestamp.
@@ -35,6 +36,7 @@ def save_results_to_json(
         model_name (str): The name of the model used for inference.
         camera_location (str): The location of the camera that captured the frame.
         frame_path (Optional[str]): Path to the frame image file, if available.
+        suspect_ids (Optional[List[str]]): List of suspect IDs detected in the frame.
     """
     # Use list comprehension to collect detections above a confidence threshold
     detections = [
@@ -48,7 +50,13 @@ def save_results_to_json(
         for result in results
         for box in result.boxes
         # TODO: Aumentar esse valor depois do desenvolvimento
-        if box.conf > 0.2  # Filter out low-confidence detections
+        if (
+            box.conf > 0.2  # Filter out low-confidence detections
+            and int(box.id)
+            and int(box.id) in suspect_ids
+            if suspect_ids
+            else True
+        )
     ]
 
     if not detections:
