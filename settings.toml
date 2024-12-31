@@ -3,8 +3,8 @@ loglevel = "INFO"
 
 [dropbox.models.yolo]
 plate_detection = "/yolo_plate_200_ep.pt"
-yolov8x = "/yolov11x.pt"
-pose = "/yolov11x-pose.pt"
+yolo11x = "/yolo11x.pt"
+pose = "/yolo11x-pose.pt"
 
 [dropbox.models.yolo.public_safety]
 public_safety = "/public_safety.pt"

@@ -9,10 +9,15 @@ package-mode = false
 name = "PyPI"
 priority = "primary"
 
-[[tool.poetry.source]]
-name = "paddle-repo"
-url = "https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html"
-default = true
+#[[tool.poetry.source]]
+#name = "paddle-repo"
+#url = "https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html"
+#priority = "supplemental"
+
+#[[tool.poetry.source]]
+#name = "pytorch"
+#url = "https://download.pytorch.org/whl/cpu"
+#priority = "supplemental"
 
 [tool.poetry.dependencies]
 python = ">= 3.10"
@@ -41,8 +46,9 @@ importlib = "*"
 #flask = "*"
 #gunicorn = "*"
 # OCR
-paddlepaddle = { version = "2.6.1", source = "paddle-repo" }
-paddleocr = "*"
+#paddlepaddle = { version = "2.6.1", source = "paddle-repo" }
+#paddleocr = "*"
+paddleocr = "^2.9.1"
 
 
 [tool.poetry.dev-dependencies]

@@ -108,7 +108,7 @@ class DropboxManagerTest(unittest.TestCase):
         """Teste funcional que faz o download de um arquivo do Dropbox."""
         access_token = settings.dropbox.access_token
 
-        dropbox_model_path = settings.dropbox.models.yolov8x
+        dropbox_model_path = settings.dropbox.models.yolo11x
 
         model_filename = dropbox_model_path.split("/")[-1]
 

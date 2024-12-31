@@ -88,7 +88,7 @@ def remove_stale_tracks(
     for stale_id in stale_ids:
         logger.info(
             f"Removing track ID {stale_id} from tracking data (inactive for "
-            f"{expiration_time} seconds)."
+            f"{expiration_time} seconds or alert sent)."
         )
         del tracking_data[stale_id]
 
