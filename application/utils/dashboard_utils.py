@@ -53,9 +53,7 @@ def save_results_to_json(
         if (
             box.conf > 0.2  # Filter out low-confidence detections
             and int(box.id)
-            and int(box.id) in suspect_ids
-            if suspect_ids
-            else True
+            and (int(box.id) in suspect_ids if suspect_ids else True)
         )
     ]
 
