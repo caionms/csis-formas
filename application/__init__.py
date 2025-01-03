@@ -19,6 +19,8 @@ GRAFFITI_SPRAY_MODEL_DROPBOX_PATH = (
 
 YOLO11X_MODEL_DROPBOX_PATH = settings.dropbox.models.yolo.yolo11x
 """Path do modelo YOLO11X no Dropbox."""
+YOLO11X_POSE_MODEL_DROPBOX_PATH = settings.dropbox.models.yolo.pose
+"""Path do modelo de detecção de poses no Dropbox."""
 PLATE_YOLO_DETECTION_MODEL_DROPBOX_PATH = settings.dropbox.models.yolo.plate_detection
 """Path do modelo de detecção de placas no Dropbox."""
 
