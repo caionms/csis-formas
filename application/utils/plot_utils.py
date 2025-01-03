@@ -188,3 +188,62 @@ def plot_bbox(
     )
 
     return img
+
+
+def plot_skeleton_kpts(
+    frame: np.ndarray,
+    kpts: list[tuple[float, float]],
+    kpts_conf: list[float],
+    color: tuple[int, int, int] | None = None,
+    orig_shape: tuple[int, int] | None = None,
+) -> None:
+    """
+    Plota o esqueleto humano e pontos-chave em uma imagem.
+
+    Args:
+        frame (np.ndarray): Frame onde o esqueleto será plotado.
+        kpts (List[Tuple[float, float]]): Lista de coordenadas (x, y) dos pontos-chave.
+        kpts_conf (List[float]): Confianças associadas a cada ponto-chave.
+        color (Optional[Tuple[int, int, int]]): Cor em formato RGB. Padrão é None.
+        orig_shape (Optional[Tuple[int, int]]): Forma original da imagem. Padrão é None.
+    """
+    skeleton = [
+        [1, 2],
+        [1, 3],
+        [2, 3],
+        [2, 4],
+        [3, 5],
+        [4, 6],
+        [5, 7],
+        [6, 7],
+        [6, 8],
+        [7, 9],
+        [8, 10],
+        [9, 11],
+        [7, 13],
+        [6, 12],
+        [12, 13],
+        [14, 12],
+        [15, 13],
+        [16, 14],
+        [17, 15],
+    ]
+
+    radius = 5
+
+    r, g, b = color if color else (0, 255, 0)  # Cor padrão verde
+
+    for kid, (x_coord, y_coord) in enumerate(kpts):
+        if kpts_conf[kid] >= 0.1 and 0 < x_coord < 640 and 0 < y_coord < 640:
+            cv2.circle(frame, (int(x_coord), int(y_coord)), radius, (r, g, b), -1)
+
+    for sk_id, (p1, p2) in enumerate(skeleton):
+        x1, y1 = kpts[p1 - 1]
+        x2, y2 = kpts[p2 - 1]
+        conf1, conf2 = kpts_conf[p1 - 1], kpts_conf[p2 - 1]
+
+        if all(
+            [conf1 >= 0.1, conf2 >= 0.1, 0 < x1 < 640, 0 < y1 < 640, 0 < x2 < 640, 0 < y2 < 640]
+        ):
+            pos1, pos2 = (int(x1), int(y1)), (int(x2), int(y2))
+            cv2.line(frame, pos1, pos2, (r, g, b), thickness=2)
