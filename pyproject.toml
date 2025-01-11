@@ -20,7 +20,7 @@ priority = "primary"
 #priority = "supplemental"
 
 [tool.poetry.dependencies]
-python = ">= 3.10"
+python = ">= 3.12"
 pywin32 = "*"
 #opencv-python = "^4.5.3"
 numpy = "*"
