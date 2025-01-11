@@ -23,6 +23,7 @@ def save_results_to_json(
     classes_names: dict[int, str],
     model_name: str,
     camera_location: str,
+    tracking_data: dict[int, dict[str, Any]],
     frame_path: str | None = None,
     suspect_ids: list[str] | None = None,
 ) -> None:
@@ -37,6 +38,7 @@ def save_results_to_json(
         camera_location (str): The location of the camera that captured the frame.
         frame_path (Optional[str]): Path to the frame image file, if available.
         suspect_ids (Optional[List[str]]): List of suspect IDs detected in the frame.
+        tracking_data (Optional[Dict[int, Dict[str, Any]]]): The tracking data for the detections.
     """
     # Use list comprehension to collect detections above a confidence threshold
     detections = [
@@ -54,6 +56,7 @@ def save_results_to_json(
             box.conf > 0.2  # Filter out low-confidence detections
             and int(box.id)
             and (int(box.id) in suspect_ids if suspect_ids else True)
+            and tracking_data.get(int(box.id), {})["alert_sent"] is False
         )
     ]
 
