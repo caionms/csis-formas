@@ -337,19 +337,24 @@ def detect_suspicious_presence(
                     img=screenshot, class_id=int(cls), box_coordinates=box, label=label, color=color
                 )
 
-            if len(suspects_ids) > 0:
+            if len(suspects_ids) > 0 and any(
+                tracking_data.get(suspect_id, {}).get("alert_sent") is False
+                for suspect_id in suspects_ids
+            ):
                 frame_path = save_annotated_image(screenshot, str(image_folder_path))
 
+                save_results_to_json(
+                    results=results,
+                    file_path=str(output_json_path),
+                    frame_path=frame_path,
+                    model_name=model_filename,
+                    classes_names=classes_names,
+                    camera_location=camera_location,
+                    suspect_ids=suspects_ids,
+                    tracking_data=tracking_data,
+                )
                 for suspect_id in suspects_ids:
-                    save_results_to_json(
-                        results=results,
-                        file_path=str(output_json_path),
-                        frame_path=frame_path,
-                        model_name=model_filename,
-                        classes_names=classes_names,
-                        camera_location=camera_location,
-                    )
-                    tracking_data[suspect_id]["alert_sent"] = True
+                    tracking_data.get(suspect_id, {})["alert_sent"] = True
 
         # Display the annotated frame
         cv.imshow("Suspicious Behavior Inference", screenshot)
@@ -497,6 +502,7 @@ def detect_proximity_to_vehicle(
                         model_name=model_filename,
                         classes_names=classes_names,
                         camera_location=camera_location,
+                        tracking_data=tracking_data,
                     )
                     tracking_data[suspect_id]["alert_sent"] = True
 
@@ -747,16 +753,18 @@ def detect_proximity_with_pose(
                 if len(suspects_ids) > 0:
                     frame_path = save_annotated_image(screenshot, str(image_folder_path))
 
+                    save_results_to_json(
+                        results=results,
+                        file_path=str(output_json_path),
+                        frame_path=frame_path,
+                        model_name=pose_model_filename,
+                        classes_names=pose_classes_names,
+                        camera_location=camera_location,
+                        suspect_ids=suspects_ids,
+                        tracking_data=tracking_data,
+                    )
                     for suspect_id in suspects_ids:
-                        save_results_to_json(
-                            results=results,
-                            file_path=str(output_json_path),
-                            frame_path=frame_path,
-                            model_name=pose_model_filename,
-                            classes_names=pose_classes_names,
-                            camera_location=camera_location,
-                        )
-                        tracking_data[suspect_id]["alert_sent"] = True
+                        tracking_data.get(suspect_id, {})["alert_sent"] = True
 
         # Display the annotated frame
         cv.imshow("Suspicious Behavior Inference", screenshot)
@@ -776,4 +784,5 @@ def detect_proximity_with_pose(
 if __name__ == "__main__":
     detect_suspicious_presence(
         window_title="Reprodutor Multimídia",
+        suspicion_threshold_time=15,
     )
