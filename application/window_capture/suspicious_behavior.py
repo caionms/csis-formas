@@ -447,16 +447,13 @@ def detect_proximity_to_vehicle(
         results = list(model.track(source=screenshot, classes=[0, 2, 3], persist=True, stream=True))
 
         if len(results[0].boxes) > 0 and any([box.id for box in results[0].boxes]):
-            boxes = results[0].boxes.xyxy.cpu()
-            track_ids = results[0].boxes.id.int().cpu().tolist()
-            classes = results[0].boxes.cls.int()
-            confidences = results[0].boxes.conf.tolist()
-
-            persons = {}
-            vehicles = {}
-            persons_near_vehicle = {}
+            persons, vehicles, persons_near_vehicle = {}, {}, {}
             suspects_ids = []
-            for box, track_id, cls, confidence in zip(boxes, track_ids, classes, confidences):
+            for box, track_id, cls in zip(
+                results[0].boxes.xyxy.cpu(),
+                results[0].boxes.id.int().cpu().tolist(),
+                results[0].boxes.cls.int(),
+            ):
                 if cls == 0 and track_id is not None:
                     persons[track_id] = box
 
@@ -464,7 +461,7 @@ def detect_proximity_to_vehicle(
                     vehicles[track_id] = box
 
             # Calulate if a person is near a vehicle
-            for person_id, person_box in persons.items():
+            for person_id, person_box in list(persons.items()):  # usa lista para iterar pela copia
                 color: tuple[int, int, int] | None = None
                 total_time_near_vehicle = tracking_data.get(person_id, {}).get(
                     "total_time_near_vehicle", 0
@@ -483,6 +480,16 @@ def detect_proximity_to_vehicle(
                     img=screenshot, class_id=0, box_coordinates=person_box, label=label, color=color
                 )
 
+            # Plota veículos
+            for vehicle_id, vehicle_box in vehicles.items():
+                label = "vehicle"
+                plot_bbox(
+                    img=screenshot,
+                    class_id=2,
+                    box_coordinates=vehicle_box,
+                    label=label,
+                )
+
             # Update tracked objects
             update_tracked_objects_proximity_to_vehicle(
                 tracked_ids_no_vehicle_near=list(persons.keys()),
@@ -491,20 +498,24 @@ def detect_proximity_to_vehicle(
                 tracking_data=tracking_data,
             )
 
-            if len(suspects_ids) > 0:
+            if len(suspects_ids) > 0 and any(
+                tracking_data.get(suspect_id, {}).get("alert_sent") is False
+                for suspect_id in suspects_ids
+            ):
                 frame_path = save_annotated_image(screenshot, str(image_folder_path))
 
+                save_results_to_json(
+                    results=results,
+                    file_path=str(output_json_path),
+                    frame_path=frame_path,
+                    model_name=model_filename,
+                    classes_names=classes_names,
+                    camera_location=camera_location,
+                    suspect_ids=suspects_ids,
+                    tracking_data=tracking_data,
+                )
                 for suspect_id in suspects_ids:
-                    save_results_to_json(
-                        results=results,
-                        file_path=str(output_json_path),
-                        frame_path=frame_path,
-                        model_name=model_filename,
-                        classes_names=classes_names,
-                        camera_location=camera_location,
-                        tracking_data=tracking_data,
-                    )
-                    tracking_data[suspect_id]["alert_sent"] = True
+                    tracking_data.get(suspect_id, {})["alert_sent"] = True
 
         # Display the annotated frame
         cv.imshow("Suspicious Behavior Inference", screenshot)
@@ -750,7 +761,10 @@ def detect_proximity_with_pose(
                                 label=f"{track_id}: {round(total_time_near_vehicle, 2)}s",
                             )
 
-                if len(suspects_ids) > 0:
+                if len(suspects_ids) > 0 and any(
+                    tracking_data.get(suspect_id, {}).get("alert_sent") is False
+                    for suspect_id in suspects_ids
+                ):
                     frame_path = save_annotated_image(screenshot, str(image_folder_path))
 
                     save_results_to_json(
@@ -782,7 +796,7 @@ def detect_proximity_with_pose(
 
 
 if __name__ == "__main__":
-    detect_suspicious_presence(
+    detect_proximity_to_vehicle(
         window_title="Reprodutor Multimídia",
         suspicion_threshold_time=15,
     )
