@@ -186,8 +186,8 @@ def plot_keypoints_detection(
     """
     # Define o texto e a cor com base no estado da pessoa
     state_labels = {
-        PoseStateEnum.STANDING: ("Em pé próximo a um veículo", (0, 215, 255)),
-        PoseStateEnum.SQUATTING: ("Agachado(a) próximo a um veículo", (0, 95, 255)),
+        PoseStateEnum.STANDING: ("Em pé proximo a um veiculo", (0, 215, 255)),
+        PoseStateEnum.SQUATTING: ("Agachado(a) proximo a um veiculo", (0, 95, 255)),
         PoseStateEnum.SUSPECT: ("Suspeito(a)", (0, 0, 255)),
     }
     label, color = state_labels[state]
@@ -632,7 +632,7 @@ def detect_proximity_with_pose(
             intersection = False
 
             # Calulate if a person is near a vehicle
-            for person_id, person_box in persons.items():
+            for person_id, person_box in list(persons.items()):  # usa lista para iterar pela copia
                 for vehicle_id, vehicle_box in vehicles.items():
                     if calculate_bbox_iou(vehicle_box, person_box) > 0:
                         intersection = True
@@ -673,7 +673,7 @@ def detect_proximity_with_pose(
 
             # Executa a inferencia do YOLOv11 de pontos-chave e verifica se a pessoa está agachada
             if intersection:
-                pose_results = list(pose_model(source=screenshot, persist=True, stream=True))
+                pose_results = list(pose_model(source=screenshot, stream=True))
                 if len(pose_results[0].boxes) > 0:
                     pose_boxes = pose_results[0].boxes.xyxy.cpu().numpy()
                     pose_keypoints = pose_results[0].keypoints.xy.numpy()
@@ -796,7 +796,8 @@ def detect_proximity_with_pose(
 
 
 if __name__ == "__main__":
-    detect_proximity_to_vehicle(
+    detect_proximity_with_pose(
         window_title="Reprodutor Multimídia",
-        suspicion_threshold_time=15,
+        suspicion_threshold_standing=60,
+        suspicion_threshold_crouched=30,
     )
