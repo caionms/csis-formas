@@ -17,7 +17,7 @@ from application import (
     PLATE_YOLO_DETECTION_MODEL_DROPBOX_PATH,
 )
 from application.log_config import get_logger
-from application.utils.dashboard_utils import save_plate_results_to_json
+from application.utils.dashboard_utils import save_annotated_image, save_plate_results_to_json
 from application.utils.model_utils import (
     NoModelAvailableException,
     download_model,
@@ -42,6 +42,10 @@ FRAMES_FOLDER_PATH = DATA_FOLDER_PATH / "frames"
 MODELS_FOLDER_PATH = Path(__file__).parents[1] / "models"
 
 TrackingData = dict[int, dict[str, Any]]
+
+validated_plates = [
+    "QQV6O13",
+]
 
 
 def add_or_update_ocr(
@@ -169,7 +173,7 @@ def main(
         screenshot = capture_window(window_id=window_id)
 
         # Run YOLOv8 inference on the frame
-        results = list(model.track(source=screenshot, persist=True, stream=True))
+        results = list(model.track(source=screenshot, persist=True, stream=True, conf=0.8))
 
         # Display the annotated frame
         annotated_frame = results[0].plot()
@@ -209,6 +213,13 @@ def main(
                             formatted_plates.append(formatted_plate)
                     if formatted_plates:
                         track_data["final_plate"] = calculate_correct_plate(formatted_plates)
+
+                        frame_path = (
+                            save_annotated_image(screenshot, str(image_folder_path))
+                            if track_data["final_plate"] not in validated_plates
+                            else None
+                        )
+
                         try:
                             save_plate_results_to_json(
                                 file_path=str(output_json_path),
@@ -216,7 +227,7 @@ def main(
                                 plate_text=track_data["final_plate"],
                                 plate_type=track_data["plate_type"],
                                 camera_location=camera_location,
-                                frame_path=None,
+                                frame_path=frame_path,
                             )
                             track_data["registered"] = True
                         except Exception:
@@ -243,6 +254,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main(
-        window_title="Reprodutor Multimídia",
-    )
+    main(window_title="Reprodutor Multimídia", type_of_camera=VehicleEnum.OUT)

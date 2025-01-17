@@ -9,6 +9,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from paddleocr import PaddleOCR
+from ultralytics.engine.results import Results
 
 from application.log_config import get_logger
 from application.window_capture.wc_config import PLATES_FOLDER_PATH
@@ -323,7 +324,10 @@ def read_license_plate(license_plate_crop: CroppedPlate, ocr: PaddleOCR) -> list
 
 
 def extract_and_save_cropped_images(
-    img: np.ndarray, results: list, save_images: bool, output_dir: Path = PLATES_FOLDER_PATH
+    img: np.ndarray,
+    results: list[Results],
+    save_images: bool,
+    output_dir: Path = PLATES_FOLDER_PATH,
 ) -> list[CroppedPlate]:
     """
     Extracts and optionally saves cropped images based on detection results.
@@ -337,44 +341,42 @@ def extract_and_save_cropped_images(
     Returns:
         list[CroppedPlate]: A list of cropped images and the plate information.
     """
-    cropped_images = []
-
+    cropped_images: list[CroppedPlate] = []
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if len(results[0].boxes) > 0 and any([box.id for box in results[0].boxes]):
-        boxes = results[0].boxes.xyxy.cpu()
-        track_ids = results[0].boxes.id.int().cpu().tolist()
-        classes = results[0].boxes.cls.int()
-        confidences = results[0].boxes.conf.tolist()
+        for box, track_id, class_id, confidence in zip(
+            results[0].boxes.xyxy.cpu(),
+            results[0].boxes.id.int().cpu().tolist(),
+            results[0].boxes.cls.int(),
+            results[0].boxes.conf.tolist(),
+        ):
+            if track_id is None:
+                continue
 
-        for box, track_id, cls, confidence in zip(boxes, track_ids, classes, confidences):
-            coordinates = box.numpy()
-            left, top, right, bottom = map(int, coordinates)
-            class_id = cls.item()
-            confidence = float(confidence)
-
+            left, top, right, bottom = map(int, box.numpy())
             cropped_img = img[top:bottom, left:right]
             license_plate_crop_gray = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
 
             if save_images:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
                 cropped_image_name = (
-                    f"{results[0].names[class_id]}_{confidence:.2f}".replace(".", "-")
+                    f"{results[0].names[class_id.item()]}_{float(confidence):.2f}".replace(".", "-")
                     + f"_{timestamp}"
                 )
-
                 cropped_image_path = output_dir / cropped_image_name
+
                 cv2.imwrite(str(cropped_image_path) + ".jpg", cropped_img)
                 cv2.imwrite(str(cropped_image_path) + "_gray.jpg", license_plate_crop_gray)
 
-            plate_type = PlateType.MERCOSUL if class_id in [0, 1] else PlateType.OLD
+            plate_type = PlateType.MERCOSUL if class_id.item() in [0, 1] else PlateType.OLD
 
             cropped_plate = CroppedPlate(
                 track_id=track_id,
                 rgb=cropped_img,
                 gray=license_plate_crop_gray,
                 plate_type=plate_type,
-                label=f"{track_id} {results[0].names[class_id]}: {confidence:.2f}\n",
+                label=f"{track_id} {results[0].names[class_id]}: {float(confidence):.2f}\n",
             )
 
             cropped_images.append(cropped_plate)
