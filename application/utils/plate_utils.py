@@ -376,7 +376,7 @@ def extract_and_save_cropped_images(
                 rgb=cropped_img,
                 gray=license_plate_crop_gray,
                 plate_type=plate_type,
-                label=f"{track_id} {results[0].names[class_id]}: {float(confidence):.2f}\n",
+                label=f"{track_id} {results[0].names[class_id.item()]}: {float(confidence):.2f}\n",
             )
 
             cropped_images.append(cropped_plate)
