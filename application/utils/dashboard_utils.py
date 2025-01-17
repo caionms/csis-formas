@@ -23,7 +23,7 @@ def save_results_to_json(
     classes_names: dict[int, str],
     model_name: str,
     camera_location: str,
-    tracking_data: dict[int, dict[str, Any]],
+    tracking_data: dict[int, dict[str, Any]] | None = None,
     frame_path: str | None = None,
     suspect_ids: list[str] | None = None,
 ) -> None:
@@ -57,6 +57,8 @@ def save_results_to_json(
             and int(box.id)
             and (int(box.id) in suspect_ids if suspect_ids else True)
             and tracking_data.get(int(box.id), {})["alert_sent"] is False
+            if tracking_data
+            else True
         )
     ]
 
