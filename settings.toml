@@ -1,14 +1,25 @@
 [app]
-loglevel="INFO"
+loglevel = "INFO"
 
-[dropbox.models]
+[dropbox.models.yolo]
+plate_detection = "/yolo_plate_200_ep.pt"
+yolo11x = "/yolo11x.pt"
+pose = "/yolo11x-pose.pt"
+
+[dropbox.models.yolo.public_safety]
 public_safety = "/public_safety.pt"
-plates = "/plates.pt"
-yolov8x = "/yolov8x.pt"
-pose = "/yolov8x-pose.pt"
-paddleocr= "/25_ep"
+fire_smoke_detection = "/fire_smoke_detection.pt"
+flood_detection = "/flood_detection.pt"
+weapon_detection = "/weapon_detection.pt"
+graffiti_spray_detection = "/graffiti_spray_detection.pt"
+
+[dropbox.models.paddleocr]
+plate_recognition = "/best_inference_paddle"
+plate_detection = "/en_PP-OCRv3_det_infer"
+plate_cls = "/ch_ppocr_mobile_v2.0_cls_infer"
 
 [paddleocr]
 rec_algorithm = "SVTR_LCNet"
 rec_image_shape = "3,48,320"
+use_space_char = true
 use_gpu = false

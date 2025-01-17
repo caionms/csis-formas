@@ -1,3 +1,5 @@
+"""Conjunto de testes para o DropboxManager."""
+
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, mock_open, patch
@@ -9,9 +11,10 @@ from config import settings
 
 
 class DropboxManagerTest(unittest.TestCase):
+    """Conjunto de testes para o DropboxManager."""
 
-    @patch('builtins.open', new_callable=mock_open)  # Mockando o método open
-    @patch('dropbox.Dropbox')  # Mockando a classe Dropbox do SDK
+    @patch("builtins.open", new_callable=mock_open)  # Mockando o método open
+    @patch("dropbox.Dropbox")  # Mockando a classe Dropbox do SDK
     def test_download_model_from_dropbox(self, MockDropbox, mock_file):
         """Teste que verifica se o download do modelo do Dropbox funciona corretamente."""
         # Criando uma instância mockada do DropboxManager
@@ -33,8 +36,8 @@ class DropboxManagerTest(unittest.TestCase):
 
         self.assertTrue(result)
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('dropbox.Dropbox')
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("dropbox.Dropbox")
     def test_download_model_from_dropbox_failure(self, MockDropbox, mock_file):
         """Teste que simula falha no download do modelo do Dropbox."""
         mock_client = MockDropbox.return_value
@@ -56,8 +59,8 @@ class DropboxManagerTest(unittest.TestCase):
 
         self.assertFalse(result)
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('dropbox.Dropbox')
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("dropbox.Dropbox")
     def test_upload_model_to_dropbox(self, MockDropbox, mock_file):
         """Teste que verifica se o upload do modelo para o Dropbox funciona corretamente."""
         mock_client = MockDropbox.return_value
@@ -77,8 +80,8 @@ class DropboxManagerTest(unittest.TestCase):
 
         self.assertTrue(result)
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('dropbox.Dropbox')
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("dropbox.Dropbox")
     def test_upload_model_to_dropbox_failure(self, MockDropbox, mock_file):
         """Teste que simula falha no upload do modelo para o Dropbox."""
         mock_client = MockDropbox.return_value
@@ -97,13 +100,15 @@ class DropboxManagerTest(unittest.TestCase):
 
         self.assertFalse(result)
 
-    @pytest.mark.skip(reason="Teste funcional que faz o download de um arquivo do Dropbox. "
-                             "Não deve ser usado como teste unitário.")
+    @pytest.mark.skip(
+        reason="Teste funcional que faz o download de um arquivo do Dropbox. "
+        "Não deve ser usado como teste unitário."
+    )
     def test_download_dropbox(self):
         """Teste funcional que faz o download de um arquivo do Dropbox."""
         access_token = settings.dropbox.access_token
 
-        dropbox_model_path = settings.dropbox.models.yolov8x
+        dropbox_model_path = settings.dropbox.models.yolo11x
 
         model_filename = dropbox_model_path.split("/")[-1]
 
@@ -120,5 +125,5 @@ class DropboxManagerTest(unittest.TestCase):
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
