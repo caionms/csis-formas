@@ -8,15 +8,8 @@ from time import time
 
 import cv2 as cv
 
-from application import (
-    DROPBOX_ACCESS_TOKEN,
-    PUBLIC_SAFETY_MODEL_DROPBOX_PATH,
-)
-from domain.window_capture.wc_config import (
-    DATA_FOLDER_PATH,
-    FRAMES_FOLDER_PATH,
-    MODELS_FOLDER_PATH,
-)
+from config.globals import DROPBOX_ACCESS_TOKEN, PUBLIC_SAFETY_MODEL_DROPBOX_PATH
+from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
 from infrastructure.logging.log_config import get_logger
 from infrastructure.utils.dashboard_utils import save_annotated_image, save_results_to_json
 from infrastructure.utils.model_utils import (
@@ -24,13 +17,15 @@ from infrastructure.utils.model_utils import (
     download_model,
     initialize_yolo_model,
 )
-from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
+from infrastructure.utils.suspicious_behavior_utils import calculate_bbox_iou
 
 logger = get_logger(__name__)
 
 
 def main(
-    window_title: str | None = None,
+    video_path: str,
+    save_video: bool = False,
+    show_video: bool = True,
     output_json_path: Path = DATA_FOLDER_PATH / "output.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     camera_location: str = "Portaria 1 - Ondina",
@@ -43,8 +38,9 @@ def main(
     resultados de detecção e a imagem anotada a cada segundo, caso haja detecções.
 
     Args:
-        window_title (Optional[str]): O título da janela a ser capturada. Se não for
-            especificado, captura a área de trabalho.
+        video_path (str): O caminho do vídeo a ser executado.
+        save_video (bool): Se True, salva o vídeo anotado.
+        show_video (bool): Se True, exibe o vídeo anotado.
         output_json_path (Path): O caminho do arquivo JSON onde os resultados das
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
@@ -54,8 +50,27 @@ def main(
     # Doing this because I'll be putting the files from each video in their own folder on GitHub
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # Prepara captura de janela
-    window_id = setup_capture_window(window_title)
+    # Extract the video file name
+    video_name = Path(video_path).name
+
+    # Open the video
+    cap = cv.VideoCapture(video_path)
+
+    if cap is None:
+        logger.error(f"[PublicSafetyDetection] Could not open video file: {video_path}")
+        return
+
+    # Configure video saving if necessary
+    if save_video:
+        output_file = f"output/{Path(video_name).stem}_output{Path(video_name).suffix}"
+        fps = cap.get(cv.CAP_PROP_FPS) or 30.0
+        fourcc = cv.VideoWriter_fourcc(*"MP4V")
+        out = cv.VideoWriter(
+            output_file,
+            fourcc,
+            fps,
+            (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))),
+        )
 
     # Load the model
     model_filename = PUBLIC_SAFETY_MODEL_DROPBOX_PATH.split("/")[-1]
@@ -75,22 +90,59 @@ def main(
     # Cria a pasta de frames se ela não existir (e consequentemente a de dados)
     image_folder_path.mkdir(parents=True, exist_ok=True)
 
-    last_save_time = time()
+    last_save_time = 0
     while True:
         loop_time = time()
 
-        screenshot = capture_window(window_id=window_id)
+        # Read the current frame
+        success, frame = cap.read()
 
-        # Run YOLOv8 inference on the frame
-        results = model(screenshot)
+        # Check if the read was successful and the frame is not None
+        if not success or frame is None:
+            break
+
+        # Obtém o tempo atual em milissegundos
+        current_time_ms = cap.get(cv.CAP_PROP_POS_MSEC)
+        # Converte para segundos
+        current_time_sec = current_time_ms / 1000
+
+        # Run YOLOv11 inference on the frame
+        results = model(frame)
 
         # Display the annotated frame
         annotated_frame = results[0].plot()
         cv.imshow("Public Safety Inference", annotated_frame)
 
         # Salva imagem anotada e resultados em um arquivo JSON a cada segundo se houver detecções
-        if time() - last_save_time >= 1.0 and len(results[0].boxes) > 0:
+        if current_time_sec - last_save_time >= 1.0 and len(results[0].boxes) > 0:
+            last_save_time = current_time_sec
+            persons = []
+            weapons = []
+
+            for box, cls in zip(
+                results[0].boxes.xyxy.cpu(),
+                results[0].boxes.cls.int(),
+            ):
+                if cls == 9 and box is not None:
+                    persons.append(box)
+                elif cls in [2, 5] and box is not None:
+                    weapons.append(box)
+
+            # Verifica se alguma arma se sobrepõe a alguma pessoa
+            weapon_overlaps_person = any(
+                calculate_bbox_iou(weapon_bbox, person_bbox) > 0
+                for weapon_bbox in weapons
+                for person_bbox in persons
+            )
+
+            # Se não há sobreposição e todas as detecções são armas ou pessoas, ignora
+            if not weapon_overlaps_person and len(results) == len(weapons) + len(persons):
+                continue
+
+            ignore_classes = [10] if weapon_overlaps_person else [2, 5, 10]
+
             frame_path = save_annotated_image(annotated_frame, str(image_folder_path))
+
             save_results_to_json(
                 results=results,
                 file_path=str(output_json_path),
@@ -98,8 +150,9 @@ def main(
                 model_name=model_filename,
                 classes_names=classes_names,
                 camera_location=camera_location,
+                ignore_classes=ignore_classes,
+                video_time=current_time_sec,
             )
-            last_save_time = time()
 
         # Debug da taxa de atualização
         logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
@@ -112,6 +165,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main(
-        window_title="Reprodutor Multimídia",
-    )
+    main(video_path="D:\\Documents\\TCC\\ICs\\Daniel\\Validacao\\Val 1\\1.mp4")
