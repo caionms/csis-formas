@@ -4,7 +4,7 @@ Módulo de utilitários para integração com o dashboard.
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import cv2 as cv
@@ -27,6 +27,7 @@ def save_results_to_json(
     frame_path: str | None = None,
     suspect_ids: list[str] | None = None,
     ignore_classes: list[int] | None = None,
+    video_time: float | None = None,
 ) -> None:
     """
     Save YOLO inference results to a JSON file, adding a new entry with a timestamp.
@@ -41,6 +42,7 @@ def save_results_to_json(
         suspect_ids (Optional[List[str]]): List of suspect IDs detected in the frame.
         tracking_data (Optional[Dict[int, Dict[str, Any]]]): The tracking data for the detections.
         ignore_classes (Optional[List[int]]): List of classes to ignore in the results.
+        video_time (Optional[float]): The time in seconds of the video where the detections occurred
     """
     # Use list comprehension to collect detections above a confidence threshold
     detections = [
@@ -67,9 +69,15 @@ def save_results_to_json(
     if not detections:
         return
 
+    # Generate the filename based on video time or current timestamp
+    if video_time is not None:
+        timestamp = timedelta(seconds=video_time)
+    else:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     # Prepare data with timestamp and optional frame path
     data = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": timestamp,
         "detections": detections,
         "frame_path": frame_path,
         "model": model_name,
@@ -119,13 +127,14 @@ def _write_json_file(file_path: str, data: list[dict[str, Any]]) -> None:
         json.dump(data, f, indent=4)
 
 
-def save_annotated_image(image: np.ndarray, folder_path: str) -> str | None:
+def save_annotated_image(image: np.ndarray, folder_path: str, video_time: float | None = None) -> str | None:
     """
     Save the annotated image with detections, naming it with the current timestamp.
 
     Args:
         image (np.ndarray): The annotated image to save.
         folder_path (str): Path to the folder where the image will be saved.
+        video_time (Optional[float]): The time in seconds of the video where the detections occurred
 
     Returns:
         Optional[str]: The path to the saved image file, or None if an error occurred.
@@ -133,8 +142,12 @@ def save_annotated_image(image: np.ndarray, folder_path: str) -> str | None:
     # Ensure the directory exists
     os.makedirs(folder_path, exist_ok=True)
 
-    # Generate the filename with the current timestamp
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    # Generate the filename based on video time or current timestamp
+    if video_time is not None:
+        timestamp = f"{video_time:.2f}".replace(".", "-")
+    else:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
     file_name = f"detection_{timestamp}.png"
     file_path = os.path.join(folder_path, file_name)
 
