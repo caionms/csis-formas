@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 import numpy as np
 import pytest
 
-from application.utils.plate_utils import (
+from infrastructure.utils.plate_utils import (
     PlateType,
     calculate_correct_plate,
     clean_text,

@@ -1,8 +1,6 @@
-"""
-Módulo de configuração do aplicativo.
-"""
+"""Variáveis globais do projeto."""
 
-from config import settings
+from config.dynaconf_settings import settings
 
 PUBLIC_SAFETY_MODEL_DROPBOX_PATH = settings.dropbox.models.yolo.public_safety.public_safety
 """Path do modelo de segurança pública no Dropbox."""

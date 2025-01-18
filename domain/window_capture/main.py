@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from application.enums.detection_type_enum import DetectionTypeEnum
-from application.utils.plate_utils import VehicleEnum
-from application.window_capture.wc_config import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH
+from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH
+from domain.enums.detection_type_enum import DetectionTypeEnum
+from infrastructure.utils.plate_utils import VehicleEnum
 
 
 def main(
@@ -39,17 +39,19 @@ def main(
         or DetectionTypeEnum.WEAPON_DETECTION
         or DetectionTypeEnum.GRAFFITI_SPRAY_DETECTION
     ):
-        from application.window_capture.public_safety import main as public_safety_main
+        from domain.window_capture.public_safety import main as public_safety_main
 
         public_safety_main(window_title, output_json_path, image_folder_path, camera_location)
     elif detection_type == DetectionTypeEnum.PLATE_RECOGNITION:
-        from application.window_capture.plate_recognition import main as plate_recognition_main
+        from domain.window_capture.plate_recognition import main as plate_recognition_main
 
         plate_recognition_main(
             window_title, output_json_path, image_folder_path, type_of_camera, camera_location
         )
     elif detection_type == DetectionTypeEnum.SUSPICIOUS_BEHAVIOR:
-        from application.window_capture.suspicious_behavior import main as suspicious_behavior_main
+        from domain.window_capture.suspicious_behavior import (
+            detect_suspicious_presence as suspicious_behavior_main,
+        )
 
         suspicious_behavior_main(window_title, output_json_path, image_folder_path, camera_location)
     else:
@@ -57,4 +59,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main(DetectionTypeEnum.SUSPICIOUS_BEHAVIOR)
+    main(DetectionTypeEnum.PUBLIC_SAFETY, "Reprodutor Multimídia")

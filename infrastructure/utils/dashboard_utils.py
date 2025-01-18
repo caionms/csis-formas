@@ -11,8 +11,8 @@ import cv2 as cv
 import numpy as np
 from ultralytics.engine.results import Results
 
-from application.log_config import get_logger
-from application.utils.plate_utils import PlateType, VehicleEnum
+from infrastructure.logging.log_config import get_logger
+from infrastructure.utils.plate_utils import PlateType, VehicleEnum
 
 logger = get_logger(__name__)
 
@@ -26,6 +26,7 @@ def save_results_to_json(
     tracking_data: dict[int, dict[str, Any]] | None = None,
     frame_path: str | None = None,
     suspect_ids: list[str] | None = None,
+    ignore_classes: list[int] | None = None,
 ) -> None:
     """
     Save YOLO inference results to a JSON file, adding a new entry with a timestamp.
@@ -39,6 +40,7 @@ def save_results_to_json(
         frame_path (Optional[str]): Path to the frame image file, if available.
         suspect_ids (Optional[List[str]]): List of suspect IDs detected in the frame.
         tracking_data (Optional[Dict[int, Dict[str, Any]]]): The tracking data for the detections.
+        ignore_classes (Optional[List[int]]): List of classes to ignore in the results.
     """
     # Use list comprehension to collect detections above a confidence threshold
     detections = [
@@ -58,7 +60,7 @@ def save_results_to_json(
             and (int(box.id) in suspect_ids if suspect_ids else True)
             and tracking_data.get(int(box.id), {})["alert_sent"] is False
             if tracking_data
-            else True
+            else True and (int(box.cls) not in ignore_classes if ignore_classes else True)
         )
     ]
 

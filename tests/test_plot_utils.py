@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from application.utils.plot_utils import colors, plot_bbox, plot_bboxes
+from infrastructure.utils.plot_utils import colors, plot_bbox, plot_bboxes
 
 
 class TestColors:

@@ -11,8 +11,8 @@ import numpy as np
 from paddleocr import PaddleOCR
 from ultralytics.engine.results import Results
 
-from application.log_config import get_logger
-from application.window_capture.wc_config import PLATES_FOLDER_PATH
+from config.paths import PLATES_FOLDER_PATH
+from infrastructure.logging.log_config import get_logger
 
 logger = get_logger(__name__)
 

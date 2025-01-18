@@ -6,8 +6,8 @@ from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
-from application.dropbox_manager import DropboxManager
-from config import settings
+from config.dynaconf_settings import settings
+from infrastructure.dropbox.dropbox_manager import DropboxManager
 
 
 class DropboxManagerTest(unittest.TestCase):

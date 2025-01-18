@@ -4,7 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from application.utils.model_utils import (
+from config.dynaconf_settings import settings
+from infrastructure.utils.model_utils import (
     NoModelAvailableException,
     download_model,
     download_models,
@@ -12,7 +13,6 @@ from application.utils.model_utils import (
     initialize_paddleocr_model,
     initialize_yolo_model,
 )
-from config import settings
 
 
 class TestModelUtils(unittest.TestCase):

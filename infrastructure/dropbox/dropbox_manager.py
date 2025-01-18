@@ -13,12 +13,11 @@ import requests
 import toml
 from dropbox.exceptions import ApiError, AuthError
 
-from application.log_config import get_logger
-from config import settings
+from config.dynaconf_settings import settings
+from config.paths import MODELS_FOLDER_PATH
+from infrastructure.logging.log_config import get_logger
 
 logger = get_logger(__name__)
-
-MODELS_PATH = Path(__file__).parent / "models"
 
 DROPBOX_APP_KEY = settings.dropbox.app_key
 DROPBOX_APP_SECRET = settings.dropbox.app_secret
@@ -37,7 +36,7 @@ class DropboxManager:
         Args:
             access_token (Optional[str]): O token de acesso para autenticação com o Dropbox.
         """
-        MODELS_PATH.mkdir(parents=True, exist_ok=True)
+        MODELS_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
         self.temporary_access_token = access_token
         self.app_key = DROPBOX_APP_KEY
@@ -159,7 +158,7 @@ class DropboxManager:
                     f"[DropboxManager][_refresh_access_token] Access token renovado com "
                     f"sucesso: {self.temporary_access_token}"
                 )
-                secrets_local_path = Path(__file__).parents[1] / ".secrets.local.toml"
+                secrets_local_path = Path(__file__).parents[2] / ".secrets.local.toml"
                 self.update_access_token(self.temporary_access_token, str(secrets_local_path))
                 return True
             else:

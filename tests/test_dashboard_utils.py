@@ -6,14 +6,14 @@ from unittest.mock import MagicMock, mock_open, patch
 import numpy as np
 import pytest
 
-from application.utils.dashboard_utils import (
+from infrastructure.utils.dashboard_utils import (
     _read_json_file,
     _write_json_file,
     save_annotated_image,
     save_plate_results_to_json,
     save_results_to_json,
 )
-from application.utils.plate_utils import PlateType, VehicleEnum
+from infrastructure.utils.plate_utils import PlateType, VehicleEnum
 
 
 @pytest.fixture

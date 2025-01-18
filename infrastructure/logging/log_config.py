@@ -1,6 +1,8 @@
+"""Logging configuration module."""
+
 import logging
 
-from config import settings
+from config.dynaconf_settings import settings
 
 default_logging_level = settings.app.loglevel
 
