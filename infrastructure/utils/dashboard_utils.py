@@ -11,8 +11,8 @@ import cv2 as cv
 import numpy as np
 from ultralytics.engine.results import Results
 
+from domain.enums.plate_enum import PlateType, VehicleEnum
 from infrastructure.logging.log_config import get_logger
-from infrastructure.utils.plate_utils import PlateType, VehicleEnum
 
 logger = get_logger(__name__)
 
@@ -71,7 +71,7 @@ def save_results_to_json(
 
     # Generate the filename based on video time or current timestamp
     if video_time is not None:
-        timestamp = timedelta(seconds=video_time)
+        timestamp = str(timedelta(seconds=video_time))
     else:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -127,7 +127,9 @@ def _write_json_file(file_path: str, data: list[dict[str, Any]]) -> None:
         json.dump(data, f, indent=4)
 
 
-def save_annotated_image(image: np.ndarray, folder_path: str, video_time: float | None = None) -> str | None:
+def save_annotated_image(
+    image: np.ndarray, folder_path: str, video_time: float | None = None
+) -> str | None:
     """
     Save the annotated image with detections, naming it with the current timestamp.
 
@@ -167,6 +169,7 @@ def save_plate_results_to_json(
     plate_type: PlateType,
     camera_location: str = "Portaria 1 - Ondina",
     frame_path: str | None = None,
+    video_time: float | None = None,
 ) -> None:
     """
     Save plate recognition results to a JSON file, adding a new entry with a timestamp.
@@ -178,10 +181,17 @@ def save_plate_results_to_json(
         plate_type (PlateType): The type of plate detected.
         camera_location (str): The location of the camera that captured the frame.
         frame_path (Optional[str]): Path to the frame image file, if available.
+        video_time (Optional[float]): The time in seconds of the video where the detections occurred
     """
+    # Generate the filename based on video time or current timestamp
+    if video_time is not None:
+        timestamp = str(timedelta(seconds=video_time))
+    else:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     # Prepare data with timestamp and optional frame path
     data = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": timestamp,
         "plate_text": plate_text,
         "in_or_out": type_of_camera.value,
         "plate_type": plate_type.value,

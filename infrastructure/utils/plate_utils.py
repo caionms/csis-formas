@@ -3,8 +3,8 @@
 import string
 from collections import Counter
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
@@ -12,25 +12,10 @@ from paddleocr import PaddleOCR
 from ultralytics.engine.results import Results
 
 from config.paths import PLATES_FOLDER_PATH
+from domain.enums.plate_enum import PlateType
 from infrastructure.logging.log_config import get_logger
 
 logger = get_logger(__name__)
-
-
-class VehicleEnum(Enum):
-    """Enum que mapeia a entrada ou saída de veículos."""
-
-    IN = "IN"
-    """Entrada de veículo."""
-    OUT = "OUT"
-    """Saída de veículo."""
-
-
-class PlateType(Enum):
-    """Enum que mapeia o tipo de placa."""
-
-    OLD = "old"
-    MERCOSUL = "mercosul"
 
 
 class CroppedPlate:
@@ -436,3 +421,39 @@ def run_ocr_inference(image: np.ndarray, ocr: PaddleOCR) -> tuple[bool, str | No
     except Exception as e:
         logger.exception(f"Erro ao executar a inferência de OCR: {e}")
         return False, None
+
+
+def add_or_update_ocr(
+    tracking_data: dict[int, dict[str, Any]],
+    track_id: int,
+    ocrs: list[str | None],
+    plate_type: PlateType,
+    registered: bool = False,
+) -> None:
+    """
+    Adiciona ou atualiza OCRs e o estado 'registered' para um dado track_id.
+
+    :param plate_type: Tipo da placa
+    :param tracking_data: O dicionário que guarda os dados de rastreamento.
+    :param track_id: O identificador único do rastreamento.
+    :param ocrs: Lista de OCRs para adicionar.
+    :param registered: O estado registrado (True ou False).
+    """
+    if track_id not in tracking_data:
+        # Inicializa o track_id se não existir
+        tracking_data[track_id] = {
+            "ocr_plates": ocrs,
+            "registered": registered,
+            "plate_type": plate_type,
+            "final_plate": None,
+        }
+    else:
+        # Adiciona os novos OCRs à lista existente
+        existing_ocrs: list[str] = tracking_data[track_id]["ocr_plates"]
+        if existing_ocrs and len(existing_ocrs) >= 1:
+            tracking_data[track_id]["ocr_plates"].extend(ocrs)
+        else:
+            tracking_data[track_id]["ocr_plates"] = ocrs
+
+        # Atualiza o tipo da placa para caso tenha ocorrido um erro em distancia maior
+        tracking_data[track_id]["plate_type"] = plate_type

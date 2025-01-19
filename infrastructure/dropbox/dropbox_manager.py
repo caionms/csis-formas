@@ -275,8 +275,23 @@ class DropboxManager:
             if not os.path.exists(local_folder_path):
                 os.makedirs(local_folder_path)
 
-            # Lista os arquivos e subpastas no Dropbox
-            response = self.dbx_client.files_list_folder(dropbox_folder_path)
+            response = None
+            try:
+                # Lista os arquivos e subpastas no Dropbox
+                response = self.dbx_client.files_list_folder(dropbox_folder_path)
+            except AuthError as auth_err:
+                if auth_err.error.is_expired_access_token():
+                    logger.error("[DropboxManager][download] Token expirado. Tentando renovar...")
+                    if self._refresh_access_token():
+                        self.dbx_client = dropbox.Dropbox(self.temporary_access_token)
+                        response = self.dbx_client.files_list_folder(dropbox_folder_path)
+
+            if not response:
+                logger.error(
+                    f"[DropboxManager][download_folder] Erro ao listar arquivos "
+                    f"da pasta {dropbox_folder_path}."
+                )
+                return False
 
             # Itera pelos itens da pasta
             for entry in response.entries:

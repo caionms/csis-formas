@@ -1,5 +1,5 @@
 """
-Módulo que executa detecção de segurança pública em uma janela.
+Módulo que executa detecção de segurança pública em um vídeo.
 """
 
 import os
@@ -9,7 +9,12 @@ from time import time
 import cv2 as cv
 
 from config.globals import DROPBOX_ACCESS_TOKEN, PUBLIC_SAFETY_MODEL_DROPBOX_PATH
-from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from config.paths import (
+    DATA_FOLDER_PATH,
+    FRAMES_FOLDER_PATH,
+    MODELS_FOLDER_PATH,
+    VIDEOS_FOLDER_PATH,
+)
 from infrastructure.logging.log_config import get_logger
 from infrastructure.utils.dashboard_utils import save_annotated_image, save_results_to_json
 from infrastructure.utils.model_utils import (
@@ -57,14 +62,17 @@ def main(
     cap = cv.VideoCapture(video_path)
 
     if cap is None:
-        logger.error(f"[PublicSafetyDetection] Could not open video file: {video_path}")
+        logger.error(f"[PublicSafety_VideoDetection] Could not open video file: {video_path}")
         return
 
     # Configure video saving if necessary
     if save_video:
-        output_file = f"output/{Path(video_name).stem}_output{Path(video_name).suffix}"
+        VIDEOS_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+        output_file = (
+            VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
+        )
         fps = cap.get(cv.CAP_PROP_FPS) or 30.0
-        fourcc = cv.VideoWriter_fourcc(*"MP4V")
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")
         out = cv.VideoWriter(
             output_file,
             fourcc,
@@ -79,7 +87,7 @@ def main(
     try:
         download_model(model_path, PUBLIC_SAFETY_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN)
     except NoModelAvailableException as e:
-        logger.error(f"[PublicSafetyDetection] {e} Detection cannot be performed.")
+        logger.error(f"[PublicSafety_VideoDetection] {e} Detection cannot be performed.")
         return
 
     model = initialize_yolo_model(model_path)
@@ -91,7 +99,7 @@ def main(
     image_folder_path.mkdir(parents=True, exist_ok=True)
 
     last_save_time = 0
-    while True:
+    while cap.isOpened():
         loop_time = time()
 
         # Read the current frame
@@ -111,7 +119,6 @@ def main(
 
         # Display the annotated frame
         annotated_frame = results[0].plot()
-        cv.imshow("Public Safety Inference", annotated_frame)
 
         # Salva imagem anotada e resultados em um arquivo JSON a cada segundo se houver detecções
         if current_time_sec - last_save_time >= 1.0 and len(results[0].boxes) > 0:
@@ -141,7 +148,9 @@ def main(
 
             ignore_classes = [10] if weapon_overlaps_person else [2, 5, 10]
 
-            frame_path = save_annotated_image(annotated_frame, str(image_folder_path))
+            frame_path = save_annotated_image(
+                annotated_frame, str(image_folder_path), current_time_sec
+            )
 
             save_results_to_json(
                 results=results,
@@ -154,15 +163,29 @@ def main(
                 video_time=current_time_sec,
             )
 
+        if show_video:
+            cv.imshow("Public Safety Inference", annotated_frame)
+
+        if save_video and out is not None:
+            out.write(annotated_frame)
+
         # Debug da taxa de atualização
-        logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
+        logger.info(f"[PublicSafety_VideoDetection] FPS: {1 / (time() - loop_time):.2f}")
 
         if cv.waitKey(1) == ord("q"):
-            cv.destroyAllWindows()
             break
 
-    print("Done.")
+    cap.release()
+    if save_video and out is not None:
+        out.release()
+    cv.destroyAllWindows()
+
+    logger.info("[PublicSafety_VideoDetection] Done.")
 
 
 if __name__ == "__main__":
-    main(video_path="D:\\Documents\\TCC\\ICs\\Daniel\\Validacao\\Val 1\\1.mp4")
+    main(
+        video_path="D:\\Documents\\TCC\\ICs\\Natan\\drive\\Formas\\incendio.mp4",
+        save_video=True,
+        show_video=True,
+    )

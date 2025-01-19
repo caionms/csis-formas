@@ -117,6 +117,7 @@ def initialize_yolo_model(
     """
     model = YOLO(model_path)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using device: {device}")
     model.to(device)
 
     return model

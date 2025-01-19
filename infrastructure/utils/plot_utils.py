@@ -2,6 +2,9 @@
 
 import cv2
 import numpy as np
+import torch
+
+from domain.enums.pose_state_enum import PoseStateEnum
 
 
 def colors(index: int, bgr: bool = True) -> tuple[int, int, int]:
@@ -247,3 +250,72 @@ def plot_skeleton_kpts(
         ):
             pos1, pos2 = (int(x1), int(y1)), (int(x2), int(y2))
             cv2.line(frame, pos1, pos2, (r, g, b), thickness=2)
+
+
+def plot_keypoints_detection(
+    frame: np.ndarray,
+    kpts: list[tuple[float, float]],
+    kpts_conf: list[float],
+    box: torch.Tensor,
+    state: PoseStateEnum,
+    person_id: int,
+    time_near_vehicle: float,
+    orig_shape: tuple[int, int] | None = None,
+) -> None:
+    """
+    Plota a detecção de pontos-chave e esqueleto em um frame, incluindo o estado da pessoa.
+
+    Args:
+        frame (np.ndarray): Frame onde o esqueleto e os textos serão plotados.
+        kpts (List[Tuple[float, float]]): Coordenadas dos pontos-chave.
+        kpts_conf (List[float]): Confiança dos pontos-chave.
+        box (torch.Tensor): Coordenadas da caixa delimitadora.
+        state (PoseStateEnum): Estado da pessoa (em pé, agachado, suspeito).
+        person_id (int): ID da pessoa rastreada.
+        time_near_vehicle (float): Tempo que a pessoa passou perto de um veículo.
+        orig_shape (Optional[Tuple[int, int]]): Forma original da imagem, se aplicável.
+    """
+    # Define o texto e a cor com base no estado da pessoa
+    state_labels = {
+        PoseStateEnum.STANDING: ("Em pé proximo a um veiculo", (0, 215, 255)),
+        PoseStateEnum.SQUATTING: ("Agachado(a) proximo a um veiculo", (0, 95, 255)),
+        PoseStateEnum.SUSPECT: ("Suspeito(a)", (0, 0, 255)),
+    }
+    label, color = state_labels[state]
+    label = f"{person_id}: {label} ({round(time_near_vehicle, 2)}s)"
+
+    # Plota o esqueleto com as cores definidas
+    plot_skeleton_kpts(frame, kpts, kpts_conf, color, orig_shape)
+
+    # Define as cores e espessuras
+    r, g, b = color
+    x1, y1, x2, y2 = map(lambda v: int(v.item()), box)
+    line_thickness = round(0.002 * (frame.shape[0] + frame.shape[1]) / 2) + 1
+    font_thickness = max(line_thickness - 1, 1)
+
+    # Calcula o tamanho do texto
+    text_size = cv2.getTextSize(label, 0, fontScale=line_thickness / 3.7, thickness=font_thickness)[
+        0
+    ]
+    text_width, text_height = text_size
+
+    # Define as coordenadas para o retângulo do texto
+    text_rect_bottom_right = (x1 + text_width, y1 - text_height - 3)
+
+    # Plota a caixa delimitadora
+    cv2.rectangle(frame, (x1, y1), (x2, y2), (r, g, b), 2)
+
+    # Plota o retângulo de fundo do texto
+    cv2.rectangle(frame, (x1, y1), text_rect_bottom_right, (r, g, b), -1, cv2.LINE_AA)
+
+    # Adiciona o texto no frame
+    cv2.putText(
+        frame,
+        label,
+        (x1, y1 - 2),
+        0,
+        line_thickness / 3.7,
+        [255, 255, 255],
+        font_thickness,
+        cv2.LINE_AA,
+    )

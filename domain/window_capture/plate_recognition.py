@@ -17,6 +17,8 @@ from config.globals import (
     PLATE_YOLO_DETECTION_MODEL_DROPBOX_PATH,
 )
 from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from domain import TrackingData
+from domain.enums.plate_enum import VehicleEnum
 from infrastructure.logging.log_config import get_logger
 from infrastructure.utils.dashboard_utils import save_annotated_image, save_plate_results_to_json
 from infrastructure.utils.model_utils import (
@@ -27,8 +29,7 @@ from infrastructure.utils.model_utils import (
     initialize_yolo_model,
 )
 from infrastructure.utils.plate_utils import (
-    PlateType,
-    VehicleEnum,
+    add_or_update_ocr,
     calculate_correct_plate,
     extract_and_save_cropped_images,
     format_license,
@@ -38,47 +39,9 @@ from infrastructure.utils.window_capture_utils import capture_window, setup_capt
 
 logger = get_logger(__name__)
 
-TrackingData = dict[int, dict[str, Any]]
-
 validated_plates = [
     "QQV6O13",
 ]
-
-
-def add_or_update_ocr(
-    tracking_data: dict[int, dict[str, Any]],
-    track_id: int,
-    ocrs: list[str | None],
-    plate_type: PlateType,
-    registered: bool = False,
-) -> None:
-    """
-    Adiciona ou atualiza OCRs e o estado 'registered' para um dado track_id.
-
-    :param plate_type: Tipo da placa
-    :param tracking_data: O dicionário que guarda os dados de rastreamento.
-    :param track_id: O identificador único do rastreamento.
-    :param ocrs: Lista de OCRs para adicionar.
-    :param registered: O estado registrado (True ou False).
-    """
-    if track_id not in tracking_data:
-        # Inicializa o track_id se não existir
-        tracking_data[track_id] = {
-            "ocr_plates": ocrs,
-            "registered": registered,
-            "plate_type": plate_type,
-            "final_plate": None,
-        }
-    else:
-        # Adiciona os novos OCRs à lista existente
-        existing_ocrs: list[str] = tracking_data[track_id]["ocr_plates"]
-        if existing_ocrs and len(existing_ocrs) >= 1:
-            tracking_data[track_id]["ocr_plates"].extend(ocrs)
-        else:
-            tracking_data[track_id]["ocr_plates"] = ocrs
-
-        # Atualiza o tipo da placa para caso tenha ocorrido um erro em distancia maior
-        tracking_data[track_id]["plate_type"] = plate_type
 
 
 def main(
@@ -160,7 +123,7 @@ def main(
 
     image_folder_path.mkdir(parents=True, exist_ok=True)
 
-    tracking_data: dict[int, dict[str, Any]] = {}
+    tracking_data: dict[int, dict[str, Any]] = TrackingData()
 
     last_run_time = time()
 

@@ -14,26 +14,26 @@ import torch
 import yaml
 from scipy.optimize import linear_sum_assignment
 
-from application import (
+from config.globals import (
     DROPBOX_ACCESS_TOKEN,
     YOLO11X_MODEL_DROPBOX_PATH,
     YOLO11X_POSE_MODEL_DROPBOX_PATH,
 )
-from application.log_config import get_logger
-from application.utils.dashboard_utils import save_annotated_image, save_results_to_json
-from application.utils.model_utils import (
+from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from infrastructure.logging.log_config import get_logger
+from infrastructure.utils.dashboard_utils import save_annotated_image, save_results_to_json
+from infrastructure.utils.model_utils import (
     NoModelAvailableException,
     download_model,
     initialize_yolo_model,
 )
-from application.utils.plot_utils import plot_bbox, plot_skeleton_kpts
-from application.utils.suspicious_behavior_utils import PoseStateEnum, calculate_bbox_iou, is_squat
-from application.utils.window_capture_utils import capture_window, setup_capture_window
-from application.window_capture.wc_config import (
-    DATA_FOLDER_PATH,
-    FRAMES_FOLDER_PATH,
-    MODELS_FOLDER_PATH,
+from infrastructure.utils.plot_utils import plot_bbox, plot_skeleton_kpts
+from infrastructure.utils.suspicious_behavior_utils import (
+    PoseStateEnum,
+    calculate_bbox_iou,
+    is_squat,
 )
+from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
 
 logger = get_logger(__name__)
 

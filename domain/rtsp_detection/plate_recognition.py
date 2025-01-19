@@ -16,16 +16,17 @@ from application import (
     PLATE_PADDLE_RECOGNITION_MODEL_DROPBOX_PATH,
     PLATE_YOLO_DETECTION_MODEL_DROPBOX_PATH,
 )
-from application.log_config import get_logger
-from application.utils.dashboard_utils import save_annotated_image, save_plate_results_to_json
-from application.utils.model_utils import (
+from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from infrastructure.logging.log_config import get_logger
+from infrastructure.utils.dashboard_utils import save_annotated_image, save_plate_results_to_json
+from infrastructure.utils.model_utils import (
     NoModelAvailableException,
     download_model,
     download_paddle_folder_model,
     initialize_paddleocr_model,
     initialize_yolo_model,
 )
-from application.utils.plate_utils import (
+from infrastructure.utils.plate_utils import (
     PlateType,
     VehicleEnum,
     calculate_correct_plate,
@@ -33,13 +34,9 @@ from application.utils.plate_utils import (
     format_license,
     read_license_plate,
 )
-from application.utils.window_capture_utils import capture_window, setup_capture_window
+from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
 
 logger = get_logger(__name__)
-
-DATA_FOLDER_PATH = Path(__file__).parents[1] / "data"
-FRAMES_FOLDER_PATH = DATA_FOLDER_PATH / "frames"
-MODELS_FOLDER_PATH = Path(__file__).parents[1] / "models"
 
 TrackingData = dict[int, dict[str, Any]]
 

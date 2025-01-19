@@ -2,7 +2,6 @@
 Módulo que executa detecção de segurança pública em uma janela.
 """
 
-import importlib.resources as pkg_resources
 import os
 from pathlib import Path
 from time import time
@@ -10,8 +9,6 @@ from typing import Any
 
 import cv2 as cv
 import numpy as np
-import torch
-import yaml
 from scipy.optimize import linear_sum_assignment
 
 from config.globals import (
@@ -19,7 +16,14 @@ from config.globals import (
     YOLO11X_MODEL_DROPBOX_PATH,
     YOLO11X_POSE_MODEL_DROPBOX_PATH,
 )
-from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from config.paths import (
+    DATA_FOLDER_PATH,
+    FRAMES_FOLDER_PATH,
+    MODELS_FOLDER_PATH,
+    VIDEOS_FOLDER_PATH,
+)
+from domain import TrackingData
+from domain.enums.pose_state_enum import PoseStateEnum
 from infrastructure.logging.log_config import get_logger
 from infrastructure.utils.dashboard_utils import save_annotated_image, save_results_to_json
 from infrastructure.utils.model_utils import (
@@ -27,211 +31,22 @@ from infrastructure.utils.model_utils import (
     download_model,
     initialize_yolo_model,
 )
-from infrastructure.utils.plot_utils import plot_bbox, plot_skeleton_kpts
+from infrastructure.utils.plot_utils import plot_bbox, plot_keypoints_detection
 from infrastructure.utils.suspicious_behavior_utils import (
-    PoseStateEnum,
     calculate_bbox_iou,
     is_squat,
+    remove_stale_tracks,
+    update_tracked_objects,
+    update_tracked_objects_proximity_to_vehicle,
 )
-from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
 
 logger = get_logger(__name__)
 
-TrackingData = dict[int, dict[str, Any]]
-
-
-def update_tracked_objects(
-    tracks_ids: list[int], current_time: float, tracking_data: TrackingData
-) -> None:
-    """
-    Atualiza o tempo de rastreamento dos objetos e controla o estado dos mesmos.
-
-    Args:
-        tracks_ids (list[Any]): The list of tracker results ids for the current frame.
-        current_time (float): Timestamp atual (tempo atual em segundos).
-        tracking_data (Dict[int, Dict[str, Any]]): The dictionary holding tracking information
-        for each ID.
-    """
-    for track_id in tracks_ids:
-        if track_id is None:
-            continue  # Se não houver ID, o objeto não está sendo rastreado
-
-        if track_id not in tracking_data:
-            # Novo objeto sendo rastreado
-            tracking_data[track_id] = {
-                "start_time": current_time,  # Quando o objeto começou a ser rastreado
-                "last_seen_time": current_time,  # Último tempo que o objeto foi visto
-                "total_time_tracked": 0,  # Tempo total que o objeto foi rastreado
-                "alert_sent": False,  # Diz se o alerta foi enviado
-            }
-        else:
-            # Atualiza o último tempo que o objeto foi visto
-            last_seen_time: float = tracking_data[track_id]["last_seen_time"]
-            tracking_data[track_id]["total_time_tracked"] += current_time - last_seen_time
-            tracking_data[track_id]["last_seen_time"] = current_time
-
-
-def update_tracked_objects_proximity_to_vehicle(
-    tracked_ids_no_vehicle_near: list[int],
-    tracked_ids_vehicle_near: list[int],
-    current_time: float,
-    tracking_data: TrackingData,
-) -> None:
-    """
-    Atualiza o tempo de rastreamento dos objetos e controla o estado dos mesmos.
-
-    Args:
-        tracked_ids_no_vehicle_near (list[Any]): The list of tracker results ids that are not
-        near a vehicle.
-        tracked_ids_vehicle_near (list[Any]): The list of tracker results ids that are near a
-         vehicle.
-        current_time (float): Timestamp atual (tempo atual em segundos).
-        tracking_data (Dict[int, Dict[str, Any]]): The dictionary holding tracking information
-        for each ID.
-    """
-    for track_id in tracked_ids_no_vehicle_near:
-        if track_id is None:
-            continue  # Se não houver ID, o objeto não está sendo rastreado
-
-        if track_id not in tracking_data:
-            # Novo objeto sendo rastreado
-            tracking_data[track_id] = {
-                "start_time": current_time,  # Quando o objeto começou a ser rastreado
-                "last_seen_time": current_time,  # Último tempo que o objeto foi visto
-                "total_time_tracked": 0,  # Tempo total que o objeto foi rastreado
-                "total_time_near_vehicle": 0,  # Tempo total que o objeto esteve perto de um veículo
-                "near_vehicle": False,  # Diz se o objeto está perto de um veículo
-                "crouched": False,  # Diz se o objeto está agachado
-                "alert_sent": False,  # Diz se o alerta foi enviado
-            }
-        else:
-            # Atualiza o último tempo que o objeto foi visto
-            last_seen_time: float = tracking_data[track_id]["last_seen_time"]
-            tracking_data[track_id]["total_time_tracked"] += current_time - last_seen_time
-            tracking_data[track_id]["last_seen_time"] = current_time
-            tracking_data[track_id]["near_vehicle"] = False
-
-    for track_id in tracked_ids_vehicle_near:
-        if track_id is None:
-            continue
-
-        if track_id not in tracking_data:
-            # Novo objeto sendo rastreado
-            tracking_data[track_id] = {
-                "start_time": current_time,  # Quando o objeto começou a ser rastreado
-                "last_seen_time": current_time,  # Último tempo que o objeto foi visto
-                "total_time_tracked": 0,  # Tempo total que o objeto foi rastreado
-                "total_time_near_vehicle": 0,  # Tempo total que o objeto esteve perto de um veículo
-                "near_vehicle": True,  # Diz se o objeto está perto de um veículo
-                "crouched": False,  # Diz se o objeto está agachado
-                "alert_sent": False,  # Diz se o alerta foi enviado
-            }
-        else:
-            # Atualiza o último tempo que o objeto foi visto
-            last_seen_time: float = tracking_data[track_id]["last_seen_time"]  # type: ignore
-            tracking_data[track_id]["total_time_tracked"] += current_time - last_seen_time
-            tracking_data[track_id]["last_seen_time"] = current_time
-            tracking_data[track_id]["near_vehicle"] = True
-            tracking_data[track_id]["total_time_near_vehicle"] += current_time - last_seen_time
-
-
-def remove_stale_tracks(
-    tracking_data: dict[int, dict[str, Any]], current_time: float, expiration_time: int = 240
-) -> None:
-    """
-    Remove objects from tracking_data that haven't been seen for the specified
-    expiration time (in seconds).
-
-    Args:
-        tracking_data (Dict[int, Dict[str, Any]]): Dictionary of tracked objects.
-        current_time (float): Current timestamp.
-        expiration_time (int): The time (in seconds) after which an object is considered stale.
-    """
-    stale_ids = [
-        track_id
-        for track_id, data in tracking_data.items()
-        if (current_time - data["last_seen_time"] > expiration_time)
-    ]
-
-    for stale_id in stale_ids:
-        logger.info(
-            f"Removing track ID {stale_id} from tracking data (inactive for "
-            f"{expiration_time} seconds or alert sent)."
-        )
-        del tracking_data[stale_id]
-
-
-def plot_keypoints_detection(
-    frame: np.ndarray,
-    kpts: list[tuple[float, float]],
-    kpts_conf: list[float],
-    box: torch.Tensor,
-    state: PoseStateEnum,
-    person_id: int,
-    time_near_vehicle: float,
-    orig_shape: tuple[int, int] | None = None,
-) -> None:
-    """
-    Plota a detecção de pontos-chave e esqueleto em um frame, incluindo o estado da pessoa.
-
-    Args:
-        frame (np.ndarray): Frame onde o esqueleto e os textos serão plotados.
-        kpts (List[Tuple[float, float]]): Coordenadas dos pontos-chave.
-        kpts_conf (List[float]): Confiança dos pontos-chave.
-        box (torch.Tensor): Coordenadas da caixa delimitadora.
-        state (PoseStateEnum): Estado da pessoa (em pé, agachado, suspeito).
-        person_id (int): ID da pessoa rastreada.
-        time_near_vehicle (float): Tempo que a pessoa passou perto de um veículo.
-        orig_shape (Optional[Tuple[int, int]]): Forma original da imagem, se aplicável.
-    """
-    # Define o texto e a cor com base no estado da pessoa
-    state_labels = {
-        PoseStateEnum.STANDING: ("Em pé proximo a um veiculo", (0, 215, 255)),
-        PoseStateEnum.SQUATTING: ("Agachado(a) proximo a um veiculo", (0, 95, 255)),
-        PoseStateEnum.SUSPECT: ("Suspeito(a)", (0, 0, 255)),
-    }
-    label, color = state_labels[state]
-    label = f"{person_id}: {label} ({time_near_vehicle}s)"
-
-    # Plota o esqueleto com as cores definidas
-    plot_skeleton_kpts(frame, kpts, kpts_conf, color, orig_shape)
-
-    # Define as cores e espessuras
-    r, g, b = color
-    x1, y1, x2, y2 = map(lambda v: int(v.item()), box)
-    line_thickness = round(0.002 * (frame.shape[0] + frame.shape[1]) / 2) + 1
-    font_thickness = max(line_thickness - 1, 1)
-
-    # Calcula o tamanho do texto
-    text_size = cv.getTextSize(label, 0, fontScale=line_thickness / 3.7, thickness=font_thickness)[
-        0
-    ]
-    text_width, text_height = text_size
-
-    # Define as coordenadas para o retângulo do texto
-    text_rect_bottom_right = (x1 + text_width, y1 - text_height - 3)
-
-    # Plota a caixa delimitadora
-    cv.rectangle(frame, (x1, y1), (x2, y2), (r, g, b), 2)
-
-    # Plota o retângulo de fundo do texto
-    cv.rectangle(frame, (x1, y1), text_rect_bottom_right, (r, g, b), -1, cv.LINE_AA)
-
-    # Adiciona o texto no frame
-    cv.putText(
-        frame,
-        label,
-        (x1, y1 - 2),
-        0,
-        line_thickness / 3.7,
-        [255, 255, 255],
-        font_thickness,
-        cv.LINE_AA,
-    )
-
 
 def detect_suspicious_presence(
-    window_title: str | None = None,
+    video_path: str,
+    save_video: bool = False,
+    show_video: bool = True,
     output_json_path: Path = DATA_FOLDER_PATH / "output.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     camera_location: str = "Portaria 1 - Ondina",
@@ -247,8 +62,9 @@ def detect_suspicious_presence(
     resultados de detecção e a imagem anotada a cada segundo, caso haja detecções.
 
     Args:
-        window_title (Optional[str]): O título da janela a ser capturada. Se não for
-            especificado, captura a área de trabalho.
+        video_path (str): O caminho do vídeo a ser executado.
+        save_video (bool): Se True, salva o vídeo anotado.
+        show_video (bool): Se True, exibe o vídeo anotado.
         output_json_path (Path): O caminho do arquivo JSON onde os resultados das
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
@@ -260,17 +76,30 @@ def detect_suspicious_presence(
     # Doing this because I'll be putting the files from each video in their own folder on GitHub
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # Get the max_time_lost to calculate the time that a track is lost
-    # Access the YAML file inside the `ultralytics.cfg` package
-    with pkg_resources.open_text("ultralytics.cfg.trackers", "botsort.yaml") as file:
-        config = yaml.safe_load(file)
+    # Extract the video file name
+    video_name = Path(video_path).name
 
-    # Get the value of 'track_buffer'
-    track_buffer = config.get("track_buffer")
-    logger.info(f"[SuspiciousBehaviorDetection] The value of track_buffer is: {track_buffer}")
+    # Open the video
+    cap = cv.VideoCapture(video_path)
 
-    # Prepara captura de janela
-    window_id = setup_capture_window(window_title)
+    if cap is None:
+        logger.error(f"[SuspiciousBehavior_VideoDetection] Could not open video file: {video_path}")
+        return
+
+    # Configure video saving if necessary
+    if save_video:
+        VIDEOS_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+        output_file = (
+            VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
+        )
+        fps = cap.get(cv.CAP_PROP_FPS) or 30.0
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")
+        out = cv.VideoWriter(
+            output_file,
+            fourcc,
+            fps,
+            (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))),
+        )
 
     # Load the model
     model_filename = YOLO11X_MODEL_DROPBOX_PATH.split("/")[-1]
@@ -279,7 +108,7 @@ def detect_suspicious_presence(
     try:
         download_model(model_path, YOLO11X_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN)
     except NoModelAvailableException as e:
-        logger.error(f"[SuspiciousBehaviorDetection] {e} Detection cannot be performed.")
+        logger.error(f"[SuspiciousBehavior_VideoDetection] {e} Detection cannot be performed.")
         return
 
     model = initialize_yolo_model(model_path)
@@ -293,15 +122,23 @@ def detect_suspicious_presence(
     # Dictionary to store tracking data (presence and absence) by ID
     tracking_data: dict[int, dict[str, Any]] = TrackingData()
 
-    while True:
+    while cap.isOpened():
         loop_time = time()
 
-        screenshot = capture_window(window_id=window_id)
-        screenshot = np.ascontiguousarray(screenshot)
-        # screenshot = screenshot.astype(np.uint8)
+        # Read the current frame
+        success, frame = cap.read()
 
-        # Run YOLOv8 inference on the frame
-        results = list(model.track(source=screenshot, classes=[0], persist=True, stream=True))
+        # Check if the read was successful and the frame is not None
+        if not success or frame is None:
+            break
+
+        # Obtém o tempo atual em milissegundos
+        current_time_ms = cap.get(cv.CAP_PROP_POS_MSEC)
+        # Converte para segundos
+        current_time_sec = current_time_ms / 1000
+
+        # Run YOLOv11 inference on the frame
+        results = list(model.track(source=frame, classes=[0], persist=True, stream=True))
 
         if len(results[0].boxes) > 0 and any([box.id for box in results[0].boxes]):
             boxes = results[0].boxes.xyxy.cpu()
@@ -312,7 +149,7 @@ def detect_suspicious_presence(
             # Update tracked objects
             update_tracked_objects(
                 tracks_ids=[track_id for i, track_id in enumerate(track_ids) if classes[i] == 0],
-                current_time=loop_time,
+                current_time=current_time_sec,
                 tracking_data=tracking_data,
             )
 
@@ -334,14 +171,14 @@ def detect_suspicious_presence(
                     label = f"vehicle: {confidence:.2f}"
 
                 plot_bbox(
-                    img=screenshot, class_id=int(cls), box_coordinates=box, label=label, color=color
+                    img=frame, class_id=int(cls), box_coordinates=box, label=label, color=color
                 )
 
             if len(suspects_ids) > 0 and any(
                 tracking_data.get(suspect_id, {}).get("alert_sent") is False
                 for suspect_id in suspects_ids
             ):
-                frame_path = save_annotated_image(screenshot, str(image_folder_path))
+                frame_path = save_annotated_image(frame, str(image_folder_path), current_time_sec)
 
                 save_results_to_json(
                     results=results,
@@ -352,29 +189,38 @@ def detect_suspicious_presence(
                     camera_location=camera_location,
                     suspect_ids=suspects_ids,
                     tracking_data=tracking_data,
+                    video_time=current_time_sec,
                 )
                 for suspect_id in suspects_ids:
                     tracking_data.get(suspect_id, {})["alert_sent"] = True
 
-        # Display the annotated frame
-        cv.imshow("Suspicious Behavior Inference", screenshot)
+        if show_video:
+            cv.imshow("Suspicious Behavior Inference", frame)
+
+        if save_video and out is not None:
+            out.write(frame)
 
         # Remove stale tracks
-        remove_stale_tracks(tracking_data, current_time=loop_time)
+        remove_stale_tracks(tracking_data, current_time=current_time_sec)
 
         # Debug da taxa de atualização
-        logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
+        logger.info(f"[SuspiciousBehavior_VideoDetection] FPS: {1 / (time() - loop_time):.2f}")
 
         if cv.waitKey(1) == ord("q"):
-            print(f"{loop_time} - {tracking_data}")
-            cv.destroyAllWindows()
             break
 
-    logger.info("Done.")
+    cap.release()
+    if save_video and out is not None:
+        out.release()
+    cv.destroyAllWindows()
+
+    logger.info("[SuspiciousBehavior_VideoDetection] Done.")
 
 
 def detect_proximity_to_vehicle(
-    window_title: str | None = None,
+    video_path: str,
+    save_video: bool = False,
+    show_video: bool = True,
     output_json_path: Path = DATA_FOLDER_PATH / "output.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     camera_location: str = "Portaria 1 - Ondina",
@@ -383,15 +229,13 @@ def detect_proximity_to_vehicle(
     """
     Detecta objetos que permanecem próximos de veículos além de tempo limite definido.
 
-    Captura continuamente a tela de uma janela específica ou da área de trabalho,
-    realiza detecção com o modelo YOLO e salva os resultados em um arquivo JSON.
-
     A função exibe os frames anotados com as detecções em uma janela OpenCV e salva os
     resultados de detecção e a imagem anotada a cada segundo, caso haja detecções.
 
     Args:
-        window_title (Optional[str]): O título da janela a ser capturada. Se não for
-            especificado, captura a área de trabalho.
+        video_path (str): O caminho do vídeo a ser executado.
+        save_video (bool): Se True, salva o vídeo anotado.
+        show_video (bool): Se True, exibe o vídeo anotado.
         output_json_path (Path): O caminho do arquivo JSON onde os resultados das
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
@@ -403,17 +247,32 @@ def detect_proximity_to_vehicle(
     # Doing this because I'll be putting the files from each video in their own folder on GitHub
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # Get the max_time_lost to calculate the time that a track is lost
-    # Access the YAML file inside the `ultralytics.cfg` package
-    with pkg_resources.open_text("ultralytics.cfg.trackers", "botsort.yaml") as file:
-        config = yaml.safe_load(file)
+    # Extract the video file name
+    video_name = Path(video_path).name
 
-    # Get the value of 'track_buffer'
-    track_buffer = config.get("track_buffer")
-    logger.info(f"[SuspiciousBehaviorDetection] The value of track_buffer is: {track_buffer}")
+    # Open the video
+    cap = cv.VideoCapture(video_path)
 
-    # Prepara captura de janela
-    window_id = setup_capture_window(window_title)
+    if cap is None:
+        logger.error(
+            f"[SuspiciousBehavior_VideoDetection] " f"Could not open video file: {video_path}"
+        )
+        return
+
+    # Configure video saving if necessary
+    if save_video:
+        VIDEOS_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+        output_file = (
+            VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
+        )
+        fps = cap.get(cv.CAP_PROP_FPS) or 30.0
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")
+        out = cv.VideoWriter(
+            output_file,
+            fourcc,
+            fps,
+            (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))),
+        )
 
     # Load the model
     model_filename = YOLO11X_MODEL_DROPBOX_PATH.split("/")[-1]
@@ -436,15 +295,23 @@ def detect_proximity_to_vehicle(
     # Dictionary to store tracking data (presence and absence) by ID
     tracking_data: dict[int, dict[str, Any]] = TrackingData()
 
-    while True:
+    while cap.isOpened():
         loop_time = time()
 
-        screenshot = capture_window(window_id=window_id)
-        screenshot = np.ascontiguousarray(screenshot)
-        # screenshot = screenshot.astype(np.uint8)
+        # Read the current frame
+        success, frame = cap.read()
+
+        # Check if the read was successful and the frame is not None
+        if not success or frame is None:
+            break
+
+        # Obtém o tempo atual em milissegundos
+        current_time_ms = cap.get(cv.CAP_PROP_POS_MSEC)
+        # Converte para segundos
+        current_time_sec = current_time_ms / 1000
 
         # Run YOLOv8 inference on the frame
-        results = list(model.track(source=screenshot, classes=[0, 2, 3], persist=True, stream=True))
+        results = list(model.track(source=frame, classes=[0, 2, 3], persist=True, stream=True))
 
         if len(results[0].boxes) > 0 and any([box.id for box in results[0].boxes]):
             persons, vehicles, persons_near_vehicle = {}, {}, {}
@@ -477,14 +344,14 @@ def detect_proximity_to_vehicle(
                         persons.pop(person_id)
                         break
                 plot_bbox(
-                    img=screenshot, class_id=0, box_coordinates=person_box, label=label, color=color
+                    img=frame, class_id=0, box_coordinates=person_box, label=label, color=color
                 )
 
             # Plota veículos
             for vehicle_id, vehicle_box in vehicles.items():
                 label = "vehicle"
                 plot_bbox(
-                    img=screenshot,
+                    img=frame,
                     class_id=2,
                     box_coordinates=vehicle_box,
                     label=label,
@@ -494,7 +361,7 @@ def detect_proximity_to_vehicle(
             update_tracked_objects_proximity_to_vehicle(
                 tracked_ids_no_vehicle_near=list(persons.keys()),
                 tracked_ids_vehicle_near=list(persons_near_vehicle.keys()),
-                current_time=loop_time,
+                current_time=current_time_sec,
                 tracking_data=tracking_data,
             )
 
@@ -502,7 +369,7 @@ def detect_proximity_to_vehicle(
                 tracking_data.get(suspect_id, {}).get("alert_sent") is False
                 for suspect_id in suspects_ids
             ):
-                frame_path = save_annotated_image(screenshot, str(image_folder_path))
+                frame_path = save_annotated_image(frame, str(image_folder_path), current_time_sec)
 
                 save_results_to_json(
                     results=results,
@@ -513,27 +380,38 @@ def detect_proximity_to_vehicle(
                     camera_location=camera_location,
                     suspect_ids=suspects_ids,
                     tracking_data=tracking_data,
+                    video_time=current_time_sec,
                 )
                 for suspect_id in suspects_ids:
                     tracking_data.get(suspect_id, {})["alert_sent"] = True
 
-        # Display the annotated frame
-        cv.imshow("Suspicious Behavior Inference", screenshot)
+        if show_video:
+            cv.imshow("Suspicious Behavior Inference", frame)
+
+        if save_video and out is not None:
+            out.write(frame)
 
         # Remove stale tracks
-        remove_stale_tracks(tracking_data, current_time=loop_time)
+        remove_stale_tracks(tracking_data, current_time=current_time_sec)
 
         # Debug da taxa de atualização
-        logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
+        logger.info(f"[SuspiciousBehavior_VideoDetection] FPS: {1 / (time() - loop_time):.2f}")
 
         if cv.waitKey(1) == ord("q"):
-            print(f"{loop_time} - {tracking_data}")
-            cv.destroyAllWindows()
             break
+
+    cap.release()
+    if save_video and out is not None:
+        out.release()
+    cv.destroyAllWindows()
+
+    logger.info("[SuspiciousBehavior_VideoDetection] Done.")
 
 
 def detect_proximity_with_pose(
-    window_title: str | None = None,
+    video_path: str,
+    save_video: bool = False,
+    show_video: bool = True,
     output_json_path: Path = DATA_FOLDER_PATH / "output.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     camera_location: str = "Portaria 1 - Ondina",
@@ -550,8 +428,9 @@ def detect_proximity_with_pose(
     resultados de detecção e a imagem anotada a cada segundo, caso haja detecções.
 
     Args:
-        window_title (Optional[str]): O título da janela a ser capturada. Se não for
-            especificado, captura a área de trabalho.
+        video_path (str): O caminho do vídeo a ser executado.
+        save_video (bool): Se True, salva o vídeo anotado.
+        show_video (bool): Se True, exibe o vídeo anotado.
         output_json_path (Path): O caminho do arquivo JSON onde os resultados das
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
@@ -565,17 +444,32 @@ def detect_proximity_with_pose(
     # Doing this because I'll be putting the files from each video in their own folder on GitHub
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # Get the max_time_lost to calculate the time that a track is lost
-    # Access the YAML file inside the `ultralytics.cfg` package
-    with pkg_resources.open_text("ultralytics.cfg.trackers", "botsort.yaml") as file:
-        config = yaml.safe_load(file)
+    # Extract the video file name
+    video_name = Path(video_path).name
 
-    # Get the value of 'track_buffer'
-    track_buffer = config.get("track_buffer")
-    logger.info(f"[SuspiciousBehaviorDetection] The value of track_buffer is: {track_buffer}")
+    # Open the video
+    cap = cv.VideoCapture(video_path)
 
-    # Prepara captura de janela
-    window_id = setup_capture_window(window_title)
+    if cap is None:
+        logger.error(
+            f"[SuspiciousBehavior_VideoDetection] " f"Could not open video file: {video_path}"
+        )
+        return
+
+    # Configure video saving if necessary
+    if save_video:
+        VIDEOS_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+        output_file = (
+            VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
+        )
+        fps = cap.get(cv.CAP_PROP_FPS) or 30.0
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")
+        out = cv.VideoWriter(
+            output_file,
+            fourcc,
+            fps,
+            (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))),
+        )
 
     # Load the model
     yolo11x_model_filename = YOLO11X_MODEL_DROPBOX_PATH.split("/")[-1]
@@ -602,16 +496,24 @@ def detect_proximity_with_pose(
     # Dictionary to store tracking data (presence and absence) by ID
     tracking_data: dict[int, dict[str, Any]] = TrackingData()
 
-    while True:
+    while cap.isOpened():
         loop_time = time()
 
-        screenshot = capture_window(window_id=window_id)
-        screenshot = np.ascontiguousarray(screenshot)
-        # screenshot = screenshot.astype(np.uint8)
+        # Read the current frame
+        success, frame = cap.read()
+
+        # Check if the read was successful and the frame is not None
+        if not success or frame is None:
+            break
+
+        # Obtém o tempo atual em milissegundos
+        current_time_ms = cap.get(cv.CAP_PROP_POS_MSEC)
+        # Converte para segundos
+        current_time_sec = current_time_ms / 1000
 
         # Run YOLOv8 inference on the frame
         results = list(
-            yolo11x_model.track(source=screenshot, classes=[0, 2, 3], persist=True, stream=True)
+            yolo11x_model.track(source=frame, classes=[0, 2, 3], persist=True, stream=True)
         )
 
         if len(results[0].boxes) > 0 and any([box.id for box in results[0].boxes]):
@@ -649,14 +551,14 @@ def detect_proximity_with_pose(
                 )
                 label = f"{person_id}: {round(total_time_near_vehicle, 2)}s"
                 plot_bbox(
-                    img=screenshot, class_id=0, box_coordinates=person_box, label=label, color=color
+                    img=frame, class_id=0, box_coordinates=person_box, label=label, color=color
                 )
 
             # Plota veículos
             for vehicle_id, vehicle_box in vehicles.items():
                 label = "vehicle"
                 plot_bbox(
-                    img=screenshot,
+                    img=frame,
                     class_id=2,
                     box_coordinates=vehicle_box,
                     label=label,
@@ -667,13 +569,13 @@ def detect_proximity_with_pose(
             update_tracked_objects_proximity_to_vehicle(
                 tracked_ids_no_vehicle_near=list(persons.keys()),
                 tracked_ids_vehicle_near=list(persons_near_vehicle.keys()),
-                current_time=loop_time,
+                current_time=current_time_sec,
                 tracking_data=tracking_data,
             )
 
             # Executa a inferencia do YOLOv11 de pontos-chave e verifica se a pessoa está agachada
             if intersection:
-                pose_results = list(pose_model(source=screenshot, stream=True))
+                pose_results = list(pose_model(source=frame, stream=True))
                 if len(pose_results[0].boxes) > 0:
                     pose_boxes = pose_results[0].boxes.xyxy.cpu().numpy()
                     pose_keypoints = pose_results[0].keypoints.xy.numpy()
@@ -709,7 +611,7 @@ def detect_proximity_with_pose(
 
                         # Verifique o IoU entre as bounding boxes
                         iou = calculate_bbox_iou(person_box, pose_box)
-                        if iou >= 0.5:  # Apenas correspondências com IoU >= 0.5 são aceitas
+                        if iou >= 0.8:  # Apenas correspondências com IoU >= 0.5 são aceitas
                             valid_matches.append((track_id, col))
                             matched_pose_indices.add(col)  # Marca a pose como correspondente
 
@@ -745,7 +647,7 @@ def detect_proximity_with_pose(
                         # Visualiza os resultados
                         if matched_pose is not None:
                             plot_keypoints_detection(
-                                frame=screenshot,
+                                frame=frame,
                                 kpts=pose_keypoints[matched_pose],
                                 kpts_conf=pose_results[0].keypoints.conf[matched_pose],
                                 box=person_box,
@@ -755,7 +657,7 @@ def detect_proximity_with_pose(
                             )
                         else:
                             plot_bbox(
-                                img=screenshot,
+                                img=frame,
                                 class_id=0,
                                 box_coordinates=person_box,
                                 label=f"{track_id}: {round(total_time_near_vehicle, 2)}s",
@@ -765,7 +667,9 @@ def detect_proximity_with_pose(
                     tracking_data.get(suspect_id, {}).get("alert_sent") is False
                     for suspect_id in suspects_ids
                 ):
-                    frame_path = save_annotated_image(screenshot, str(image_folder_path))
+                    frame_path = save_annotated_image(
+                        frame, str(image_folder_path), current_time_sec
+                    )
 
                     save_results_to_json(
                         results=results,
@@ -776,28 +680,51 @@ def detect_proximity_with_pose(
                         camera_location=camera_location,
                         suspect_ids=suspects_ids,
                         tracking_data=tracking_data,
+                        video_time=current_time_sec,
                     )
                     for suspect_id in suspects_ids:
                         tracking_data.get(suspect_id, {})["alert_sent"] = True
 
-        # Display the annotated frame
-        cv.imshow("Suspicious Behavior Inference", screenshot)
+        if show_video:
+            cv.imshow("Suspicious Behavior Inference", frame)
+
+        if save_video and out is not None:
+            out.write(frame)
 
         # Remove stale tracks
-        remove_stale_tracks(tracking_data, current_time=loop_time)
+        remove_stale_tracks(tracking_data, current_time=current_time_sec)
 
         # Debug da taxa de atualização
-        logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
+        logger.info(f"[SuspiciousBehavior_VideoDetection] FPS: {1 / (time() - loop_time):.2f}")
 
         if cv.waitKey(1) == ord("q"):
-            print(f"{loop_time} - {tracking_data}")
-            cv.destroyAllWindows()
             break
+
+    cap.release()
+    if save_video and out is not None:
+        out.release()
+    cv.destroyAllWindows()
+
+    logger.info("[SuspiciousBehavior_VideoDetection] Done.")
 
 
 if __name__ == "__main__":
+    # detect_suspicious_presence(
+    #    video_path="D:\\Documents\\TCC\\Dados-Coseg-Bope\\TIC\\2024-06\\EFGYarRUC2.mp4",
+    #    show_video=False,
+    #    save_video=True,
+    #    suspicion_threshold_time=5,
+    # )
+    # detect_proximity_to_vehicle(
+    #    video_path="D:\\Documents\\TCC\\ICs\\Caio\\20230616_111312.mp4",
+    #    show_video=False,
+    #    save_video=True,
+    #    suspicion_threshold_time=5,
+    # )
     detect_proximity_with_pose(
-        window_title="Reprodutor Multimídia",
-        suspicion_threshold_standing=60,
-        suspicion_threshold_crouched=30,
+        video_path="D:\\Documents\\TCC\\ICs\\Caio\\20230616_111617.mp4",
+        suspicion_threshold_standing=6,
+        suspicion_threshold_crouched=3,
+        show_video=False,
+        save_video=True,
     )

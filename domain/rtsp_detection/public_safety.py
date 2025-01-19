@@ -8,23 +8,17 @@ from time import time
 
 import cv2 as cv
 
-from application import (
-    DROPBOX_ACCESS_TOKEN,
-    PUBLIC_SAFETY_MODEL_DROPBOX_PATH,
-)
-from application.log_config import get_logger
-from application.utils.dashboard_utils import save_annotated_image, save_results_to_json
-from application.utils.model_utils import (
+from config.globals import DROPBOX_ACCESS_TOKEN, PUBLIC_SAFETY_MODEL_DROPBOX_PATH
+from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from infrastructure.logging.log_config import get_logger
+from infrastructure.utils.dashboard_utils import save_annotated_image, save_results_to_json
+from infrastructure.utils.model_utils import (
     NoModelAvailableException,
     download_model,
     initialize_yolo_model,
 )
-from application.utils.window_capture_utils import capture_window, setup_capture_window
-from application.window_capture.wc_config import (
-    DATA_FOLDER_PATH,
-    FRAMES_FOLDER_PATH,
-    MODELS_FOLDER_PATH,
-)
+from infrastructure.utils.suspicious_behavior_utils import calculate_bbox_iou
+from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
 
 logger = get_logger(__name__)
 
@@ -90,7 +84,33 @@ def main(
 
         # Salva imagem anotada e resultados em um arquivo JSON a cada segundo se houver detecções
         if time() - last_save_time >= 1.0 and len(results[0].boxes) > 0:
+            persons = []
+            weapons = []
+
+            for box, cls in zip(
+                results[0].boxes.xyxy.cpu(),
+                results[0].boxes.cls.int(),
+            ):
+                if cls == 9 and box is not None:
+                    persons.append(box)
+                elif cls in [2, 5] and box is not None:
+                    weapons.append(box)
+
+            # Verifica se alguma arma se sobrepõe a alguma pessoa
+            weapon_overlaps_person = any(
+                calculate_bbox_iou(weapon_bbox, person_bbox) > 0
+                for weapon_bbox in weapons
+                for person_bbox in persons
+            )
+
+            # Se não há sobreposição e todas as detecções são armas ou pessoas, ignora
+            if not weapon_overlaps_person and len(results) == len(weapons) + len(persons):
+                continue
+
+            ignore_classes = [10] if weapon_overlaps_person else [2, 5, 10]
+
             frame_path = save_annotated_image(annotated_frame, str(image_folder_path))
+
             save_results_to_json(
                 results=results,
                 file_path=str(output_json_path),
@@ -98,6 +118,7 @@ def main(
                 model_name=model_filename,
                 classes_names=classes_names,
                 camera_location=camera_location,
+                ignore_classes=ignore_classes,
             )
             last_save_time = time()
 
@@ -113,5 +134,5 @@ def main(
 
 if __name__ == "__main__":
     main(
-        window_title="o_nome_de_sua_janela",
+        window_title="Reprodutor Multimídia",
     )

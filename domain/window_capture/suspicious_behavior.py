@@ -10,7 +10,6 @@ from typing import Any
 
 import cv2 as cv
 import numpy as np
-import torch
 import yaml
 from scipy.optimize import linear_sum_assignment
 
@@ -20,6 +19,8 @@ from config.globals import (
     YOLO11X_POSE_MODEL_DROPBOX_PATH,
 )
 from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from domain import TrackingData
+from domain.enums.pose_state_enum import PoseStateEnum
 from infrastructure.logging.log_config import get_logger
 from infrastructure.utils.dashboard_utils import save_annotated_image, save_results_to_json
 from infrastructure.utils.model_utils import (
@@ -27,207 +28,17 @@ from infrastructure.utils.model_utils import (
     download_model,
     initialize_yolo_model,
 )
-from infrastructure.utils.plot_utils import plot_bbox, plot_skeleton_kpts
+from infrastructure.utils.plot_utils import plot_bbox, plot_keypoints_detection
 from infrastructure.utils.suspicious_behavior_utils import (
-    PoseStateEnum,
     calculate_bbox_iou,
     is_squat,
+    remove_stale_tracks,
+    update_tracked_objects,
+    update_tracked_objects_proximity_to_vehicle,
 )
 from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
 
 logger = get_logger(__name__)
-
-TrackingData = dict[int, dict[str, Any]]
-
-
-def update_tracked_objects(
-    tracks_ids: list[int], current_time: float, tracking_data: TrackingData
-) -> None:
-    """
-    Atualiza o tempo de rastreamento dos objetos e controla o estado dos mesmos.
-
-    Args:
-        tracks_ids (list[Any]): The list of tracker results ids for the current frame.
-        current_time (float): Timestamp atual (tempo atual em segundos).
-        tracking_data (Dict[int, Dict[str, Any]]): The dictionary holding tracking information
-        for each ID.
-    """
-    for track_id in tracks_ids:
-        if track_id is None:
-            continue  # Se não houver ID, o objeto não está sendo rastreado
-
-        if track_id not in tracking_data:
-            # Novo objeto sendo rastreado
-            tracking_data[track_id] = {
-                "start_time": current_time,  # Quando o objeto começou a ser rastreado
-                "last_seen_time": current_time,  # Último tempo que o objeto foi visto
-                "total_time_tracked": 0,  # Tempo total que o objeto foi rastreado
-                "alert_sent": False,  # Diz se o alerta foi enviado
-            }
-        else:
-            # Atualiza o último tempo que o objeto foi visto
-            last_seen_time: float = tracking_data[track_id]["last_seen_time"]
-            tracking_data[track_id]["total_time_tracked"] += current_time - last_seen_time
-            tracking_data[track_id]["last_seen_time"] = current_time
-
-
-def update_tracked_objects_proximity_to_vehicle(
-    tracked_ids_no_vehicle_near: list[int],
-    tracked_ids_vehicle_near: list[int],
-    current_time: float,
-    tracking_data: TrackingData,
-) -> None:
-    """
-    Atualiza o tempo de rastreamento dos objetos e controla o estado dos mesmos.
-
-    Args:
-        tracked_ids_no_vehicle_near (list[Any]): The list of tracker results ids that are not
-        near a vehicle.
-        tracked_ids_vehicle_near (list[Any]): The list of tracker results ids that are near a
-         vehicle.
-        current_time (float): Timestamp atual (tempo atual em segundos).
-        tracking_data (Dict[int, Dict[str, Any]]): The dictionary holding tracking information
-        for each ID.
-    """
-    for track_id in tracked_ids_no_vehicle_near:
-        if track_id is None:
-            continue  # Se não houver ID, o objeto não está sendo rastreado
-
-        if track_id not in tracking_data:
-            # Novo objeto sendo rastreado
-            tracking_data[track_id] = {
-                "start_time": current_time,  # Quando o objeto começou a ser rastreado
-                "last_seen_time": current_time,  # Último tempo que o objeto foi visto
-                "total_time_tracked": 0,  # Tempo total que o objeto foi rastreado
-                "total_time_near_vehicle": 0,  # Tempo total que o objeto esteve perto de um veículo
-                "near_vehicle": False,  # Diz se o objeto está perto de um veículo
-                "crouched": False,  # Diz se o objeto está agachado
-                "alert_sent": False,  # Diz se o alerta foi enviado
-            }
-        else:
-            # Atualiza o último tempo que o objeto foi visto
-            last_seen_time: float = tracking_data[track_id]["last_seen_time"]
-            tracking_data[track_id]["total_time_tracked"] += current_time - last_seen_time
-            tracking_data[track_id]["last_seen_time"] = current_time
-            tracking_data[track_id]["near_vehicle"] = False
-
-    for track_id in tracked_ids_vehicle_near:
-        if track_id is None:
-            continue
-
-        if track_id not in tracking_data:
-            # Novo objeto sendo rastreado
-            tracking_data[track_id] = {
-                "start_time": current_time,  # Quando o objeto começou a ser rastreado
-                "last_seen_time": current_time,  # Último tempo que o objeto foi visto
-                "total_time_tracked": 0,  # Tempo total que o objeto foi rastreado
-                "total_time_near_vehicle": 0,  # Tempo total que o objeto esteve perto de um veículo
-                "near_vehicle": True,  # Diz se o objeto está perto de um veículo
-                "crouched": False,  # Diz se o objeto está agachado
-                "alert_sent": False,  # Diz se o alerta foi enviado
-            }
-        else:
-            # Atualiza o último tempo que o objeto foi visto
-            last_seen_time: float = tracking_data[track_id]["last_seen_time"]  # type: ignore
-            tracking_data[track_id]["total_time_tracked"] += current_time - last_seen_time
-            tracking_data[track_id]["last_seen_time"] = current_time
-            tracking_data[track_id]["near_vehicle"] = True
-            tracking_data[track_id]["total_time_near_vehicle"] += current_time - last_seen_time
-
-
-def remove_stale_tracks(
-    tracking_data: dict[int, dict[str, Any]], current_time: float, expiration_time: int = 240
-) -> None:
-    """
-    Remove objects from tracking_data that haven't been seen for the specified
-    expiration time (in seconds).
-
-    Args:
-        tracking_data (Dict[int, Dict[str, Any]]): Dictionary of tracked objects.
-        current_time (float): Current timestamp.
-        expiration_time (int): The time (in seconds) after which an object is considered stale.
-    """
-    stale_ids = [
-        track_id
-        for track_id, data in tracking_data.items()
-        if (current_time - data["last_seen_time"] > expiration_time)
-    ]
-
-    for stale_id in stale_ids:
-        logger.info(
-            f"Removing track ID {stale_id} from tracking data (inactive for "
-            f"{expiration_time} seconds or alert sent)."
-        )
-        del tracking_data[stale_id]
-
-
-def plot_keypoints_detection(
-    frame: np.ndarray,
-    kpts: list[tuple[float, float]],
-    kpts_conf: list[float],
-    box: torch.Tensor,
-    state: PoseStateEnum,
-    person_id: int,
-    time_near_vehicle: float,
-    orig_shape: tuple[int, int] | None = None,
-) -> None:
-    """
-    Plota a detecção de pontos-chave e esqueleto em um frame, incluindo o estado da pessoa.
-
-    Args:
-        frame (np.ndarray): Frame onde o esqueleto e os textos serão plotados.
-        kpts (List[Tuple[float, float]]): Coordenadas dos pontos-chave.
-        kpts_conf (List[float]): Confiança dos pontos-chave.
-        box (torch.Tensor): Coordenadas da caixa delimitadora.
-        state (PoseStateEnum): Estado da pessoa (em pé, agachado, suspeito).
-        person_id (int): ID da pessoa rastreada.
-        time_near_vehicle (float): Tempo que a pessoa passou perto de um veículo.
-        orig_shape (Optional[Tuple[int, int]]): Forma original da imagem, se aplicável.
-    """
-    # Define o texto e a cor com base no estado da pessoa
-    state_labels = {
-        PoseStateEnum.STANDING: ("Em pé proximo a um veiculo", (0, 215, 255)),
-        PoseStateEnum.SQUATTING: ("Agachado(a) proximo a um veiculo", (0, 95, 255)),
-        PoseStateEnum.SUSPECT: ("Suspeito(a)", (0, 0, 255)),
-    }
-    label, color = state_labels[state]
-    label = f"{person_id}: {label} ({time_near_vehicle}s)"
-
-    # Plota o esqueleto com as cores definidas
-    plot_skeleton_kpts(frame, kpts, kpts_conf, color, orig_shape)
-
-    # Define as cores e espessuras
-    r, g, b = color
-    x1, y1, x2, y2 = map(lambda v: int(v.item()), box)
-    line_thickness = round(0.002 * (frame.shape[0] + frame.shape[1]) / 2) + 1
-    font_thickness = max(line_thickness - 1, 1)
-
-    # Calcula o tamanho do texto
-    text_size = cv.getTextSize(label, 0, fontScale=line_thickness / 3.7, thickness=font_thickness)[
-        0
-    ]
-    text_width, text_height = text_size
-
-    # Define as coordenadas para o retângulo do texto
-    text_rect_bottom_right = (x1 + text_width, y1 - text_height - 3)
-
-    # Plota a caixa delimitadora
-    cv.rectangle(frame, (x1, y1), (x2, y2), (r, g, b), 2)
-
-    # Plota o retângulo de fundo do texto
-    cv.rectangle(frame, (x1, y1), text_rect_bottom_right, (r, g, b), -1, cv.LINE_AA)
-
-    # Adiciona o texto no frame
-    cv.putText(
-        frame,
-        label,
-        (x1, y1 - 2),
-        0,
-        line_thickness / 3.7,
-        [255, 255, 255],
-        font_thickness,
-        cv.LINE_AA,
-    )
 
 
 def detect_suspicious_presence(
