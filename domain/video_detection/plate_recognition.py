@@ -93,7 +93,7 @@ def main(
             VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
         )
         fps = cap.get(cv.CAP_PROP_FPS) or 30.0
-        fourcc = cv.VideoWriter_fourcc(*"MP4V")
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")
         out = cv.VideoWriter(
             output_file,
             fourcc,
