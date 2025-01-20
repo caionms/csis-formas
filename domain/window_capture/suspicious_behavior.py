@@ -487,7 +487,7 @@ def detect_proximity_with_pose(
                 pose_results = list(pose_model(source=screenshot, stream=True))
                 if len(pose_results[0].boxes) > 0:
                     pose_boxes = pose_results[0].boxes.xyxy.cpu().numpy()
-                    pose_keypoints = pose_results[0].keypoints.xy.numpy()
+                    pose_keypoints = pose_results[0].keypoints.xy.cpu().numpy()
 
                     # Calcula centros dos bounding boxes
                     person_centers = {
