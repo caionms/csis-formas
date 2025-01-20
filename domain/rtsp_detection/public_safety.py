@@ -18,13 +18,13 @@ from infrastructure.utils.model_utils import (
     initialize_yolo_model,
 )
 from infrastructure.utils.suspicious_behavior_utils import calculate_bbox_iou
-from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
 
 logger = get_logger(__name__)
 
 
 def main(
-    window_title: str | None = None,
+    rtsp_url: str,
+    show_video: bool = True,
     output_json_path: Path = DATA_FOLDER_PATH / "output.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     camera_location: str = "Portaria 1 - Ondina",
@@ -37,8 +37,8 @@ def main(
     resultados de detecção e a imagem anotada a cada segundo, caso haja detecções.
 
     Args:
-        window_title (Optional[str]): O título da janela a ser capturada. Se não for
-            especificado, captura a área de trabalho.
+        rtsp_url (str): A URL do stream RTSP a ser capturado.
+        show_video (bool): Se True, exibe o vídeo anotado.
         output_json_path (Path): O caminho do arquivo JSON onde os resultados das
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
@@ -48,8 +48,15 @@ def main(
     # Doing this because I'll be putting the files from each video in their own folder on GitHub
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # Prepara captura de janela
-    window_id = setup_capture_window(window_title)
+    # Prepara captura via RTSP
+    cap = cv.VideoCapture(rtsp_url)
+
+    if cap is None:
+        logger.error(
+            f"[PublicSafety_RTSPDetection] Could not open RTSP stream at {rtsp_url}. "
+            f"Detection cannot be performed."
+        )
+        return
 
     # Load the model
     model_filename = PUBLIC_SAFETY_MODEL_DROPBOX_PATH.split("/")[-1]
@@ -73,14 +80,21 @@ def main(
     while True:
         loop_time = time()
 
-        screenshot = capture_window(window_id=window_id)
+        # Read the current frame
+        success, frame = cap.read()
+
+        # Check if the read was successful and the frame is not None
+        if not success or frame is None:
+            logger.error("[PublicSafety_RTSPDetection] Could not read frame from RTSP stream.")
+            break
 
         # Run YOLOv8 inference on the frame
-        results = model(screenshot)
+        results = model(frame)
 
         # Display the annotated frame
         annotated_frame = results[0].plot()
-        cv.imshow("Public Safety Inference", annotated_frame)
+        if show_video:
+            cv.imshow("Public Safety Inference", annotated_frame)
 
         # Salva imagem anotada e resultados em um arquivo JSON a cada segundo se houver detecções
         if time() - last_save_time >= 1.0 and len(results[0].boxes) > 0:
@@ -126,13 +140,15 @@ def main(
         logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
 
         if cv.waitKey(1) == ord("q"):
-            cv.destroyAllWindows()
             break
 
-    print("Done.")
+    cap.release()
+    cv.destroyAllWindows()
+    logger.info("[PublicSafety_RTSPDetection] Done.")
 
 
 if __name__ == "__main__":
+    rtsp_url = "rtsp://"
     main(
-        window_title="Reprodutor Multimídia",
+        rtsp_url=rtsp_url,
     )

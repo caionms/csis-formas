@@ -9,7 +9,7 @@ from typing import Any
 
 import cv2 as cv
 
-from application import (
+from config.globals import (
     DROPBOX_ACCESS_TOKEN,
     PLATE_PADDLE_CLS_MODEL_DROPBOX_PATH,
     PLATE_PADDLE_DETECTION_MODEL_DROPBOX_PATH,
@@ -17,6 +17,8 @@ from application import (
     PLATE_YOLO_DETECTION_MODEL_DROPBOX_PATH,
 )
 from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from domain import TrackingData
+from domain.enums.plate_enum import VehicleEnum
 from infrastructure.logging.log_config import get_logger
 from infrastructure.utils.dashboard_utils import save_annotated_image, save_plate_results_to_json
 from infrastructure.utils.model_utils import (
@@ -27,62 +29,23 @@ from infrastructure.utils.model_utils import (
     initialize_yolo_model,
 )
 from infrastructure.utils.plate_utils import (
-    PlateType,
-    VehicleEnum,
+    add_or_update_ocr,
     calculate_correct_plate,
     extract_and_save_cropped_images,
     format_license,
     read_license_plate,
 )
-from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
 
 logger = get_logger(__name__)
-
-TrackingData = dict[int, dict[str, Any]]
 
 validated_plates = [
     "QQV6O13",
 ]
 
 
-def add_or_update_ocr(
-    tracking_data: dict[int, dict[str, Any]],
-    track_id: int,
-    ocrs: list[str | None],
-    plate_type: PlateType,
-    registered: bool = False,
-) -> None:
-    """
-    Adiciona ou atualiza OCRs e o estado 'registered' para um dado track_id.
-
-    :param plate_type: Tipo da placa
-    :param tracking_data: O dicionário que guarda os dados de rastreamento.
-    :param track_id: O identificador único do rastreamento.
-    :param ocrs: Lista de OCRs para adicionar.
-    :param registered: O estado registrado (True ou False).
-    """
-    if track_id not in tracking_data:
-        # Inicializa o track_id se não existir
-        tracking_data[track_id] = {
-            "ocr_plates": ocrs,
-            "registered": registered,
-            "plate_type": plate_type,
-            "final_plate": None,
-        }
-    else:
-        # Adiciona os novos OCRs à lista existente
-        existing_ocrs: list[str] = tracking_data[track_id]["ocr_plates"]
-        if existing_ocrs and len(existing_ocrs) >= 1:
-            tracking_data[track_id]["ocr_plates"].extend(ocrs)
-        else:
-            tracking_data[track_id]["ocr_plates"] = ocrs
-
-        # Atualiza o tipo da placa para caso tenha ocorrido um erro em distancia maior
-        tracking_data[track_id]["plate_type"] = plate_type
-
-
 def main(
-    window_title: str | None = None,
+    rtsp_url: str,
+    show_video: bool = True,
     output_json_path: Path = DATA_FOLDER_PATH / "output_plates.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     type_of_camera: VehicleEnum = VehicleEnum.IN,
@@ -97,8 +60,8 @@ def main(
     resultados de detecção e a imagem anotada a cada segundo, caso haja detecções.
 
     Args:
-        window_title (Optional[str]): O título da janela a ser capturada. Se não for
-            especificado, captura a área de trabalho.
+        rtsp_url (str): A URL do stream RTSP a ser capturado.
+        show_video (bool): Se True, exibe o vídeo anotado.
         output_json_path (Path): O caminho do arquivo JSON onde os resultados das
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
@@ -107,8 +70,15 @@ def main(
     """
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # Prepara captura de janela
-    window_id = setup_capture_window(window_title)
+    # Prepara captura via RTSP
+    cap = cv.VideoCapture(rtsp_url)
+
+    if cap is None:
+        logger.error(
+            f"[PlateDetection_RTSPDetection] Could not open RTSP stream at {rtsp_url}. "
+            f"Detection cannot be performed."
+        )
+        return
 
     # Load the plate detection model
     plate_detection_model_filename = PLATE_YOLO_DETECTION_MODEL_DROPBOX_PATH.split("/")[-1]
@@ -121,7 +91,7 @@ def main(
             DROPBOX_ACCESS_TOKEN,
         )
     except NoModelAvailableException as e:
-        logger.error(f"[PlateRecognition] {e} Detection cannot be performed.")
+        logger.error(f"[PlateDetection_RTSPDetection] {e} Detection cannot be performed.")
         return
 
     model = initialize_yolo_model(plate_detection_model_path)
@@ -151,7 +121,7 @@ def main(
             text_cls_model_path, PLATE_PADDLE_CLS_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN
         )
     except NoModelAvailableException as e:
-        logger.error(f"[PlateRecognition] {e} Detection cannot be performed.")
+        logger.error(f"[PlateDetection_RTSPDetection] {e} Detection cannot be performed.")
         return
 
     ocr = initialize_paddleocr_model(
@@ -160,25 +130,32 @@ def main(
 
     image_folder_path.mkdir(parents=True, exist_ok=True)
 
-    tracking_data: dict[int, dict[str, Any]] = {}
+    tracking_data: dict[int, dict[str, Any]] = TrackingData()
 
     last_run_time = time()
 
     while True:
         loop_time = time()
 
-        screenshot = capture_window(window_id=window_id)
+        # Read the current frame
+        success, frame = cap.read()
+
+        # Check if the read was successful and the frame is not None
+        if not success or frame is None:
+            logger.error("[PlateDetection_RTSPDetection] Could not read frame from RTSP stream.")
+            break
 
         # Run YOLOv8 inference on the frame
-        results = list(model.track(source=screenshot, persist=True, stream=True, conf=0.8))
+        results = list(model.track(source=frame, persist=True, stream=True, conf=0.8))
 
         # Display the annotated frame
         annotated_frame = results[0].plot()
-        cv.imshow("Plate Detection Inference", annotated_frame)
+        if show_video:
+            cv.imshow("Plate Detection Inference", annotated_frame)
 
         # Recorta imagens das placas
         cropped_images = extract_and_save_cropped_images(
-            img=screenshot, results=results, save_images=False
+            img=frame, results=results, save_images=False
         )
 
         # Placas OCR-izadas
@@ -212,7 +189,7 @@ def main(
                         track_data["final_plate"] = calculate_correct_plate(formatted_plates)
 
                         frame_path = (
-                            save_annotated_image(screenshot, str(image_folder_path))
+                            save_annotated_image(frame, str(image_folder_path))
                             if track_data["final_plate"] not in validated_plates
                             else None
                         )
@@ -244,11 +221,16 @@ def main(
         logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
 
         if cv.waitKey(1) == ord("q"):
-            cv.destroyAllWindows()
             break
 
-    print("Done.")
+    cap.release()
+    cv.destroyAllWindows()
+    logger.info("[PlateDetection_RTSPDetection] Done.")
 
 
 if __name__ == "__main__":
-    main(window_title="Reprodutor Multimídia", type_of_camera=VehicleEnum.OUT)
+    rtsp_url = "rtsp://"
+    main(
+        rtsp_url=rtsp_url,
+        type_of_camera=VehicleEnum.IN,
+    )
