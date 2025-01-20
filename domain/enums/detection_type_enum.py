@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-from application import (
+from config.globals import (
     FIRE_SMOKE_MODEL_DROPBOX_PATH,
     FLOOD_MODEL_DROPBOX_PATH,
     GRAFFITI_SPRAY_MODEL_DROPBOX_PATH,
@@ -16,8 +16,12 @@ class DetectionTypeEnum(Enum):
 
     PLATE_RECOGNITION = "PLATE_RECOGNITION"
     """Tipo de detecção de placa."""
-    SUSPICIOUS_BEHAVIOR = "SUSPICIOUS_BEHAVIOR"
-    """Tipo de detecção de comportamento suspeito."""
+    SUSPICIOUS_PRESENCE = "SUSPICIOUS_PRESENCE"
+    """Tipo de detecção de comportamento suspeito por presença na câmera."""
+    SUSPICIOUS_PROXIMITY_TO_VEHICLE = "SUSPICIOUS_PROXIMITY_TO_VEHICLE"
+    """Tipo de detecção de comportamento suspeito por proximidade a veículo."""
+    SUSPICIOUS_PROXIMITY_WITH_POSE = "SUSPICIOUS_PROXIMITY_WITH_POSE"
+    """Tipo de detecção de comportamento suspeito por proximidade com pose."""
     PUBLIC_SAFETY = PUBLIC_SAFETY_MODEL_DROPBOX_PATH
     """Tipo de detecção de segurança pública."""
     FIRE_SMOKE_DETECTION = FIRE_SMOKE_MODEL_DROPBOX_PATH
