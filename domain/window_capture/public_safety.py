@@ -8,8 +8,9 @@ from time import time
 
 import cv2 as cv
 
-from config.globals import DROPBOX_ACCESS_TOKEN, PUBLIC_SAFETY_MODEL_DROPBOX_PATH
+from config.globals import DROPBOX_ACCESS_TOKEN
 from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from domain.enums.detection_type_enum import DetectionTypeEnum
 from infrastructure.logging.log_config import get_logger
 from infrastructure.utils.dashboard_utils import save_annotated_image, save_results_to_json
 from infrastructure.utils.model_utils import (
@@ -25,6 +26,7 @@ logger = get_logger(__name__)
 
 def main(
     window_title: str | None = None,
+    detection_type: DetectionTypeEnum = DetectionTypeEnum.PUBLIC_SAFETY,
     output_json_path: Path = DATA_FOLDER_PATH / "output.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     camera_location: str = "Portaria 1 - Ondina",
@@ -39,6 +41,7 @@ def main(
     Args:
         window_title (Optional[str]): O título da janela a ser capturada. Se não for
             especificado, captura a área de trabalho.
+        detection_type (DetectionTypeEnum): O tipo de detecção a ser realizada.
         output_json_path (Path): O caminho do arquivo JSON onde os resultados das
             detecções serão salvos.
         image_folder_path (Path): O caminho da pasta onde as imagens anotadas serão salvas.
@@ -52,11 +55,20 @@ def main(
     window_id = setup_capture_window(window_title)
 
     # Load the model
-    model_filename = PUBLIC_SAFETY_MODEL_DROPBOX_PATH.split("/")[-1]
+    if detection_type not in (
+        DetectionTypeEnum.PUBLIC_SAFETY,
+        DetectionTypeEnum.FIRE_SMOKE_DETECTION,
+        DetectionTypeEnum.WEAPON_DETECTION,
+        DetectionTypeEnum.FLOOD_DETECTION,
+        DetectionTypeEnum.GRAFFITI_SPRAY_DETECTION,
+    ):
+        detection_type = DetectionTypeEnum.PUBLIC_SAFETY
+    model_dropbox_path = detection_type.value
+    model_filename = model_dropbox_path.split("/")[-1]
     model_path = MODELS_FOLDER_PATH / model_filename
 
     try:
-        download_model(model_path, PUBLIC_SAFETY_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN)
+        download_model(model_path, model_dropbox_path, DROPBOX_ACCESS_TOKEN)
     except NoModelAvailableException as e:
         logger.error(f"[PublicSafetyDetection] {e} Detection cannot be performed.")
         return
@@ -65,6 +77,8 @@ def main(
 
     # Obtem o nome das classes
     classes_names = model.names
+    weapon_ids = [key for key, value in classes_names.items() if value in ["gun", "knife"]]
+    person_id = [key for key, value in classes_names.items() if value == "person"]
 
     # Cria a pasta de frames se ela não existir (e consequentemente a de dados)
     image_folder_path.mkdir(parents=True, exist_ok=True)
@@ -91,9 +105,9 @@ def main(
                 results[0].boxes.xyxy.cpu(),
                 results[0].boxes.cls.int(),
             ):
-                if cls == 9 and box is not None:
+                if cls in person_id and box is not None:
                     persons.append(box)
-                elif cls in [2, 5] and box is not None:
+                elif cls in weapon_ids and box is not None:
                     weapons.append(box)
 
             # Verifica se alguma arma se sobrepõe a alguma pessoa
@@ -107,7 +121,7 @@ def main(
             if not weapon_overlaps_person and len(results) == len(weapons) + len(persons):
                 continue
 
-            ignore_classes = [10] if weapon_overlaps_person else [2, 5, 10]
+            ignore_classes = person_id if weapon_overlaps_person else (weapon_ids + person_id)
 
             frame_path = save_annotated_image(annotated_frame, str(image_folder_path))
 
