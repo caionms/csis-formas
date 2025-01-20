@@ -107,6 +107,7 @@ def main(
 
         # Check if the read was successful and the frame is not None
         if not success or frame is None:
+            logger.error("[PublicSafety_VideoDetection] Could not read frame from video.")
             break
 
         # Obtém o tempo atual em milissegundos

@@ -130,6 +130,7 @@ def detect_suspicious_presence(
 
         # Check if the read was successful and the frame is not None
         if not success or frame is None:
+            logger.error("[SuspiciousBehavior_VideoDetection] Could not read frame from video.")
             break
 
         # Obtém o tempo atual em milissegundos
@@ -303,6 +304,7 @@ def detect_proximity_to_vehicle(
 
         # Check if the read was successful and the frame is not None
         if not success or frame is None:
+            logger.error("[SuspiciousBehavior_VideoDetection] Could not read frame from video.")
             break
 
         # Obtém o tempo atual em milissegundos
@@ -504,6 +506,7 @@ def detect_proximity_with_pose(
 
         # Check if the read was successful and the frame is not None
         if not success or frame is None:
+            logger.error("[SuspiciousBehavior_VideoDetection] Could not read frame from video.")
             break
 
         # Obtém o tempo atual em milissegundos
