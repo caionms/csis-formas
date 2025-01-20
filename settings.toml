@@ -8,10 +8,10 @@ pose = "/yolo11x-pose.pt"
 
 [dropbox.models.yolo.public_safety]
 public_safety = "/public_safety.pt"
-fire_smoke_detection = "/fire_smoke_detection.pt"
-flood_detection = "/flood_detection.pt"
-weapon_detection = "/weapon_detection.pt"
-graffiti_spray_detection = "/graffiti_spray_detection.pt"
+fire_smoke_detection = "/fire.pt"
+flood_detection = "/flood.pt"
+weapon_detection = "/weapon.pt"
+graffiti_spray_detection = "/graffiti.pt"
 
 [dropbox.models.paddleocr]
 plate_recognition = "/best_inference_paddle"
