@@ -70,6 +70,10 @@ def three_points_angle(kpts: list[tuple[float, float]], kpts_ind: list[int]) -> 
     magnitude_v1 = math.sqrt(v1[0] ** 2 + v1[1] ** 2)
     magnitude_v2 = math.sqrt(v2[0] ** 2 + v2[1] ** 2)
 
+    # Evita divisão por zero
+    if magnitude_v1 == 0 or magnitude_v2 == 0:
+        return 0.0  # Ângulo padrão para vetores degenerados
+
     # Calcula o angulo entre os vetores
     angle = math.acos(min(max(dot_product / (magnitude_v1 * magnitude_v2), -1.0), 1.0))
     return math.degrees(angle)
