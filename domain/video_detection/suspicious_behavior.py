@@ -93,9 +93,9 @@ def detect_suspicious_presence(
             VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
         )
         fps = cap.get(cv.CAP_PROP_FPS) or 30.0
-        fourcc = cv.VideoWriter_fourcc(*"mp4v")
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")  # type: ignore
         out = cv.VideoWriter(
-            output_file,
+            str(output_file),
             fourcc,
             fps,
             (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))),
@@ -267,9 +267,9 @@ def detect_proximity_to_vehicle(
             VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
         )
         fps = cap.get(cv.CAP_PROP_FPS) or 30.0
-        fourcc = cv.VideoWriter_fourcc(*"mp4v")
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")  # type: ignore
         out = cv.VideoWriter(
-            output_file,
+            str(output_file),
             fourcc,
             fps,
             (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))),
@@ -465,9 +465,9 @@ def detect_proximity_with_pose(
             VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
         )
         fps = cap.get(cv.CAP_PROP_FPS) or 30.0
-        fourcc = cv.VideoWriter_fourcc(*"mp4v")
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")  # type: ignore
         out = cv.VideoWriter(
-            output_file,
+            str(output_file),
             fourcc,
             fps,
             (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))),

@@ -75,9 +75,9 @@ def main(
             VIDEOS_FOLDER_PATH / f"{Path(video_name).stem}_output{Path(video_name).suffix}"
         )
         fps = cap.get(cv.CAP_PROP_FPS) or 30.0
-        fourcc = cv.VideoWriter_fourcc(*"mp4v")
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")  # type: ignore
         out = cv.VideoWriter(
-            output_file,
+            str(output_file),
             fourcc,
             fps,
             (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))),
@@ -112,7 +112,7 @@ def main(
     # Cria a pasta de frames se ela não existir (e consequentemente a de dados)
     image_folder_path.mkdir(parents=True, exist_ok=True)
 
-    last_save_time = 0
+    last_save_time = 0.0
     while cap.isOpened():
         loop_time = time()
 

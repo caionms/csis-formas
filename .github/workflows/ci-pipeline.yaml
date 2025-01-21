@@ -54,7 +54,8 @@ jobs:
             application config domain infrastructure presentation tests \
             --ignore-missing-imports \
             --install-types \
-            --non-interactive
+            --non-interactive \
+            --explicit-package-bases
 
       # Etapa 9: Verificação de Dependências com Deptry
       - name: Dependency Check
