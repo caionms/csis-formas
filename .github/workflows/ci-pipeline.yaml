@@ -9,55 +9,65 @@ on:
       - main
 
 jobs:
-  static-analysis:
-    name: Static Analysis
+  ci:
+    name: CI - Testes e Análises
     runs-on: ubuntu-latest
 
     steps:
+      # Etapa 1: Checkout do Código
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      # Etapa 2: Configuração do Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
+      # Etapa 3: Instalação do Poetry
       - name: Install Poetry
         run: |
           python -m pip install --upgrade pip
           pip install poetry
 
+      # Etapa 4: Instalação das Dependências
       - name: Install Dependencies
         run: poetry install --no-root
 
-      - name: Run Pre-Commit Hooks
-        run: |
-          poetry run pre-commit install
-          poetry run pre-commit run --all-files
-
-  tests:
-    name: Run Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      - name: Install Poetry
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-
-      - name: Install Dependencies
-        run: poetry install --no-root
-
+      # Etapa 5: Configuração do PYTHONPATH
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: Run Tests
-        run: poetry run pytest
+      # Etapa 6: Verificação de Formatação com Black
+      - name: Format Check
+        run: poetry run black --check .
+
+      # Etapa 7: Linting com Ruff
+      - name: Python Code Lint
+        run: poetry run ruff check .
+
+      # Etapa 8: Verificação de Tipagem Estática com MyPy
+      - name: Static Type Check
+        run: |
+          mkdir -p .mypy_cache
+          poetry run mypy \
+            application config domain infrastructure presentation tests \
+            --ignore-missing-imports \
+            --install-types \
+            --non-interactive
+
+      # Etapa 9: Verificação de Dependências com Deptry
+      - name: Dependency Check
+        run: poetry run deptry .
+
+      # Etapa 10: Execução dos Testes com Pytest
+      - name: Run Unit Tests
+        run: |
+          poetry run pytest --cov=application --cov=config --cov=domain --cov=infrastructure --cov=presentation --cov=tests --cov-report=term --cov-report=xml:coverage.xml tests
+
+      # Artefatos: Relatórios de Cobertura e Testes
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.xml
