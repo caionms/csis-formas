@@ -21,11 +21,11 @@ priority = "primary"
 
 [tool.poetry.dependencies]
 python = ">= 3.12"
-pywin32 = "*"
+#pywin32 = "*"
 #opencv-python = "^4.5.3"
 numpy = "*"
 #pygetwindow = "^0.0.9"
-PyWinCtl = "*"
+#PyWinCtl = "*"
 #pillow = "*"
 matplotlib = "*"
 keyboard = "*"
