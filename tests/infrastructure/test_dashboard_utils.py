@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, mock_open, patch
 import numpy as np
 import pytest
 
+from domain.enums.plate_enum import PlateType, VehicleEnum
 from infrastructure.utils.dashboard_utils import (
     _read_json_file,
     _write_json_file,
@@ -13,7 +14,6 @@ from infrastructure.utils.dashboard_utils import (
     save_plate_results_to_json,
     save_results_to_json,
 )
-from infrastructure.utils.plate_utils import PlateType, VehicleEnum
 
 
 @pytest.fixture
@@ -39,16 +39,16 @@ def mock_classes_names():
 class TestDashboardUtils:
     """Conjunto de testes para as funções utilitárias do dashboard."""
 
-    @patch("application.utils.dashboard_utils.os.path.exists", return_value=True)
-    @patch("application.utils.dashboard_utils.open", new_callable=mock_open, read_data="[]")
+    @patch("infrastructure.utils.dashboard_utils.os.path.exists", return_value=True)
+    @patch("infrastructure.utils.dashboard_utils.open", new_callable=mock_open, read_data="[]")
     def test_read_json_file(self, mock_file, mock_exists):
         """Deve retornar uma lista vazia para um JSON inicial vazio."""
         result = _read_json_file("dummy_path.json")
         assert result == [], "Deve retornar uma lista vazia para um JSON inicial vazio."
         mock_file.assert_called_once_with("dummy_path.json")
 
-    @patch("application.utils.dashboard_utils.json.dump")
-    @patch("application.utils.dashboard_utils.open", new_callable=mock_open)
+    @patch("infrastructure.utils.dashboard_utils.json.dump")
+    @patch("infrastructure.utils.dashboard_utils.open", new_callable=mock_open)
     def test_write_json_file(self, mock_file, mock_dump):
         """Deve escrever um arquivo JSON corretamente."""
         data = [{"key": "value"}]
@@ -58,17 +58,26 @@ class TestDashboardUtils:
 
     def test_save_results_to_json(self, mock_json_file, mock_classes_names):
         """Deve salvar os resultados de detecção em um arquivo JSON."""
-        results = [
-            MagicMock(
-                boxes=[
-                    MagicMock(cls=0, conf=0.9, xywh=MagicMock(return_value=[100, 100, 50, 50])),
-                    MagicMock(cls=1, conf=0.3, xywh=MagicMock(return_value=[50, 50, 20, 20])),
-                ]
-            )
-        ]
-        for box in results[0].boxes:
-            box.xywh.tolist = MagicMock(return_value=box.xywh())
+        # Criando resultados simulados
+        mock_box_1 = MagicMock()
+        mock_box_1.cls = 0
+        mock_box_1.conf = 0.9  # Confiança alta
+        mock_box_1.id = 1
+        mock_box_1.xywh = MagicMock(return_value=[100, 100, 50, 50])
+        mock_box_1.xywh.tolist = MagicMock(return_value=[100, 100, 50, 50])
 
+        mock_box_2 = MagicMock()
+        mock_box_2.cls = 1
+        mock_box_2.conf = 0.1  # Confiança baixa (deve ser filtrado)
+        mock_box_2.id = 2
+        mock_box_2.xywh = MagicMock(return_value=[50, 50, 20, 20])
+        mock_box_2.xywh.tolist = MagicMock(return_value=[50, 50, 20, 20])
+
+        mock_result = MagicMock()
+        mock_result.boxes = [mock_box_1, mock_box_2]  # Lista de boxes
+        results = [mock_result]
+
+        # Chamando a função
         save_results_to_json(
             results=results,
             file_path=mock_json_file,
@@ -77,15 +86,24 @@ class TestDashboardUtils:
             camera_location="Test Location",
         )
 
+        # Verificando o conteúdo salvo no JSON
         with open(mock_json_file) as f:
             saved_data = json.load(f)
 
-        assert len(saved_data) == 1
-        assert saved_data[0]["detections"][0]["class"] == "car (0)"
-        assert saved_data[0]["detections"][0]["confidence"] == 0.9
+        # Verificações
+        assert len(saved_data) == 1, "Deve haver uma única entrada no JSON."
+        assert (
+            len(saved_data[0]["detections"]) == 1
+        ), "Apenas detecções com confiança > 0.2 devem ser salvas."
+        assert (
+            saved_data[0]["detections"][0]["class"] == "car (0)"
+        ), "Classe da detecção não corresponde."
+        assert (
+            saved_data[0]["detections"][0]["confidence"] == 0.9
+        ), "Confiança da detecção não corresponde."
 
-    @patch("application.utils.dashboard_utils.os.makedirs")
-    @patch("application.utils.dashboard_utils.cv.imwrite", return_value=True)
+    @patch("infrastructure.utils.dashboard_utils.os.makedirs")
+    @patch("infrastructure.utils.dashboard_utils.cv.imwrite", return_value=True)
     def test_save_annotated_image_success(self, mock_imwrite, mock_makedirs, mock_image, tmp_path):
         """Deve salvar uma imagem anotada com sucesso."""
         folder_path = str(tmp_path / "images")
@@ -94,7 +112,9 @@ class TestDashboardUtils:
         mock_makedirs.assert_called_once_with(folder_path, exist_ok=True)
         mock_imwrite.assert_called_once()
 
-    @patch("application.utils.dashboard_utils.cv.imwrite", side_effect=Exception("Test exception"))
+    @patch(
+        "infrastructure.utils.dashboard_utils.cv.imwrite", side_effect=Exception("Test exception")
+    )
     def test_save_annotated_image_failure(self, mock_imwrite, mock_image, tmp_path):
         """Deve retornar None em caso de falha ao salvar a imagem."""
         folder_path = str(tmp_path / "images")

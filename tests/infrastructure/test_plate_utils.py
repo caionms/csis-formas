@@ -94,7 +94,7 @@ class TestPlateUtils:
         formatted, success = format_license("A3C1234", PlateType.MERCOSUL)
         assert not success, "Deve retornar False para placa inválida."
 
-    @patch("application.utils.plate_utils.run_ocr_inference")
+    @patch("infrastructure.utils.plate_utils.run_ocr_inference")
     def test_read_license_plate(self, mock_run_ocr, mock_ocr):
         """Deve retornar as placas lidas pelo OCR."""
         mock_run_ocr.side_effect = [(True, "ABC123"), (True, "ABC123")]

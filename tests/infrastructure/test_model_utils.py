@@ -18,7 +18,7 @@ from infrastructure.utils.model_utils import (
 class TestModelUtils(unittest.TestCase):
     """Conjunto de testes para as funções de utilitários de modelos."""
 
-    @patch("application.utils.model_utils.DropboxManager")
+    @patch("infrastructure.utils.model_utils.DropboxManager")
     def test_download_model_success(self, MockDropboxManager):
         """Teste que verifica o download de um modelo único com sucesso."""
         mock_manager = MockDropboxManager.return_value
@@ -34,7 +34,7 @@ class TestModelUtils(unittest.TestCase):
             dropbox_path=model_dropbox_path, local_file_path=str(model_path)
         )
 
-    @patch("application.utils.model_utils.DropboxManager")
+    @patch("infrastructure.utils.model_utils.DropboxManager")
     def test_download_model_failure(self, MockDropboxManager):
         """Teste que verifica falha no download de um modelo único."""
         mock_manager = MockDropboxManager.return_value
@@ -51,7 +51,7 @@ class TestModelUtils(unittest.TestCase):
             dropbox_path=model_dropbox_path, local_file_path=str(model_path)
         )
 
-    @patch("application.utils.model_utils.download_model")
+    @patch("infrastructure.utils.model_utils.download_model")
     def test_download_models(self, mock_download_model):
         """Teste que verifica o download de múltiplos modelos."""
         models_folder_path = Path("/fake/path/models")
@@ -68,7 +68,7 @@ class TestModelUtils(unittest.TestCase):
                 models_folder_path / model_name, dropbox_path, access_token
             )
 
-    @patch("application.utils.model_utils.DropboxManager")
+    @patch("infrastructure.utils.model_utils.DropboxManager")
     def test_download_paddle_folder_model_success(self, MockDropboxManager):
         """Teste que verifica o download de uma pasta Paddle com sucesso."""
         mock_manager = MockDropboxManager.return_value
@@ -84,7 +84,7 @@ class TestModelUtils(unittest.TestCase):
             dropbox_folder_path=model_dropbox_path, local_folder_path=str(model_path)
         )
 
-    @patch("application.utils.model_utils.DropboxManager")
+    @patch("infrastructure.utils.model_utils.DropboxManager")
     def test_download_paddle_folder_model_failure(self, MockDropboxManager):
         """Teste que verifica falha no download de uma pasta Paddle."""
         mock_manager = MockDropboxManager.return_value
@@ -101,8 +101,8 @@ class TestModelUtils(unittest.TestCase):
             dropbox_folder_path=model_dropbox_path, local_folder_path=str(model_path)
         )
 
-    @patch("application.utils.model_utils.torch.cuda.is_available", return_value=True)
-    @patch("application.utils.model_utils.YOLO")
+    @patch("infrastructure.utils.model_utils.torch.cuda.is_available", return_value=True)
+    @patch("infrastructure.utils.model_utils.YOLO")
     def test_initialize_yolo_model(self, MockYOLO, mock_is_available):
         """Teste que verifica a inicialização do modelo YOLO."""
         mock_model = MockYOLO.return_value
@@ -114,7 +114,7 @@ class TestModelUtils(unittest.TestCase):
         mock_model.to.assert_called_once_with("cuda")
         self.assertEqual(initialized_model, mock_model)
 
-    @patch("application.utils.model_utils.PaddleOCR")
+    @patch("infrastructure.utils.model_utils.PaddleOCR")
     def test_initialize_paddleocr_model(self, MockPaddleOCR):
         """Teste que verifica a inicialização do modelo PaddleOCR."""
         mock_ocr = MockPaddleOCR.return_value
@@ -137,7 +137,7 @@ class TestModelUtils(unittest.TestCase):
             rec_algorithm=settings.paddleocr.rec_algorithm,
             rec_image_shape=settings.paddleocr.rec_image_shape,
             rec_char_dict_path=str(
-                Path(__file__).parents[1] / "application" / "utils" / "data" / "en_dict.txt"
+                Path(__file__).parents[2] / "infrastructure" / "resources" / "en_dict.txt"
             ),
             use_space_char=settings.paddleocr.use_space_char,
             use_gpu=settings.paddleocr.use_gpu,
