@@ -9,52 +9,45 @@ package-mode = false
 name = "PyPI"
 priority = "primary"
 
-#[[tool.poetry.source]]
-#name = "paddle-repo"
-#url = "https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html"
-#priority = "supplemental"
-
-#[[tool.poetry.source]]
-#name = "pytorch"
-#url = "https://download.pytorch.org/whl/cpu"
-#priority = "supplemental"
-
 [tool.poetry.dependencies]
 python = ">= 3.12"
 #pywin32 = "*"
-#opencv-python = "^4.5.3"
-numpy = "*"
-#pygetwindow = "^0.0.9"
 #PyWinCtl = "*"
-#pillow = "*"
-matplotlib = "*"
-keyboard = "*"
+numpy = "*"
 mss = "*"
-#gui_automation = { git = "https://github.com/marcosboggia/gui_automation.git", branch = "master" }
 ultralytics = "*"
-#opencv-python-headless = "<4.10.0"
 opencv-python = "*"
-pyvirtualdisplay = "*"
 dropbox = "*"
 dynaconf = "*"
 toml = "*"
 # Necessario pro tracking de comportamento suspeito
-lapx = ">=0.5.2"
 pyyaml = "*"
-importlib = "*"
+paddleocr = "^2.9.1"
+scipy = "*"
+requests = "*"
+torch = "*"
+pytest = "*"
 # Para o simulador RTSP
 #flask = "*"
 #gunicorn = "*"
 # OCR
 #paddlepaddle = { version = "2.6.1", source = "paddle-repo" }
 #paddleocr = "*"
-paddleocr = "^2.9.1"
+#opencv-python-headless = "<4.10.0"
+#gui_automation = { git = "https://github.com/marcosboggia/gui_automation.git", branch = "master" }
+#pygetwindow = "^0.0.9"
+#opencv-python = "^4.5.3"
+#pillow = "*"
+#matplotlib = "*"
+#keyboard = "*"
+#pyvirtualdisplay = "*"
+#lapx = ">=0.5.2"
+#importlib = "*"
 
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
 mypy = "*"
-pytest = "*"
 ruff = "*"
 flake8 = "*"
 coverage = "*"
@@ -63,6 +56,10 @@ pre-commit = "^3.8.0"
 deptry = "*"
 
 [tool]
+
+[tool.deptry]
+ignore = ["DEP001"]
+exclude = [".venv", ".github", "dev"]
 
 [tool.ruff]
 line-length = 100
