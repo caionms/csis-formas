@@ -1,9 +1,16 @@
 """Módulo com testes para as funções utilitárias de captura de janela."""
 
+import sys
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+
+if sys.platform != "win32":
+    pytest.skip(
+        "Todos os testes deste arquivo só são executados no Windows", allow_module_level=True
+    )
+
 
 from infrastructure.utils.window_capture_utils import (
     capture_window,
