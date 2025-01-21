@@ -44,27 +44,32 @@ def save_results_to_json(
         ignore_classes (Optional[List[int]]): List of classes to ignore in the results.
         video_time (Optional[float]): The time in seconds of the video where the detections occurred
     """
-    # Use list comprehension to collect detections above a confidence threshold
-    detections = [
-        {
-            "class": f"{classes_names[int(box.cls)]} ({int(box.cls)})"
-            if classes_names[int(box.cls)] is not None
-            else f"{int(box.cls)}",  # Class name and number
-            "confidence": round(float(box.conf), 2),  # Detection confidence rounded to 2 decimals
-            "bbox": box.xywh.tolist(),  # Bounding box coordinates (x, y, w, h)
-        }
-        for result in results
-        for box in result.boxes
-        # TODO: Aumentar esse valor depois do desenvolvimento
-        if (
-            box.conf > 0.2  # Filter out low-confidence detections
-            and int(box.id)
-            and (int(box.id) in suspect_ids if suspect_ids else True)
-            and tracking_data.get(int(box.id), {})["alert_sent"] is False
-            if tracking_data
-            else True and (int(box.cls) not in ignore_classes if ignore_classes else True)
-        )
-    ]
+    detections = []
+    for result in results:
+        for box in result.boxes:
+            class_id = int(box.cls)
+            box_id = int(box.id)
+            confidence = float(box.conf)
+
+            # Filter conditions
+            is_confident = confidence > 0.2
+            is_not_ignored = ignore_classes is None or class_id not in ignore_classes
+            is_suspect = suspect_ids is None or box_id in suspect_ids
+            is_alert_pending = (
+                tracking_data is None
+                or tracking_data.get(box_id, {}).get("alert_sent", False) is False
+            )
+
+            if is_confident and is_not_ignored and is_suspect and is_alert_pending:
+                detections.append(
+                    {
+                        "class": f"{classes_names[class_id]} ({class_id})"
+                        if classes_names[class_id] is not None
+                        else f"{class_id}",
+                        "confidence": round(confidence, 2),
+                        "bbox": box.xywh.tolist(),
+                    }
+                )
 
     if not detections:
         return
