@@ -35,6 +35,7 @@ from infrastructure.utils.plate_utils import (
     format_license,
     read_license_plate,
 )
+from infrastructure.utils.plot_utils import plot_only_label
 
 logger = get_logger(__name__)
 
@@ -171,6 +172,13 @@ def main(
 
         # Verifica se passaram 10 segundos
         if time() - last_run_time >= 10:
+            # Remove as placas já registradas
+            keys_to_remove = [
+                key for key, value in tracking_data.items() if value.get("registered", False)
+            ]
+            for key in keys_to_remove:
+                del tracking_data[key]
+
             for track_id, track_data in tracking_data.items():
                 # Se não estiver registrado e houver mais de 10 OCRs, tenta registrar
                 if (
@@ -208,14 +216,21 @@ def main(
                             logger.exception("Error saving plate results to JSON.")
                             track_data["registered"] = False
 
-            # Remove as placas já registradas
-            keys_to_remove = [
-                key for key, value in tracking_data.items() if value.get("registered", False)
-            ]
-            for key in keys_to_remove:
-                del tracking_data[key]
-
             last_run_time = time()
+
+        if len(results[0].boxes) > 0 and any([box.id for box in results[0].boxes]):
+            for box, track_id, cls in zip(
+                results[0].boxes.xyxy.cpu(),
+                results[0].boxes.id.int().cpu().tolist(),
+                results[0].boxes.cls.int(),
+            ):
+                if (
+                    track_id in tracking_data.keys()
+                    and tracking_data[track_id]["final_plate"] is not None
+                ):
+                    plot_only_label(
+                        img=annotated_frame, box=box, text=tracking_data[track_id]["final_plate"]
+                    )
 
         # Debug da taxa de atualização
         logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
