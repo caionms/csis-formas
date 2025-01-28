@@ -59,7 +59,7 @@ jobs:
 
       # Etapa 9: Verificação de Dependências com Deptry
       - name: Dependency Check
-        run: poetry run deptry .
+        run: poetry run deptry . --per-rule-ignores DEP002=pytest-cov
 
       # Etapa 10: Execução dos Testes com Pytest
       - name: Run Unit Tests
