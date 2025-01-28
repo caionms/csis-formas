@@ -319,3 +319,32 @@ def plot_keypoints_detection(
         font_thickness,
         cv2.LINE_AA,
     )
+
+
+def plot_only_label(img, box, text, font_scale=0.7, color=(0, 255, 0), thickness=2):
+    """
+    Desenha um texto próximo a um bounding box em uma imagem.
+
+    Args:
+        img (numpy.ndarray): A imagem em que o bounding box e o texto serão desenhados.
+        box (list or tuple): Coordenadas do bounding box [x1, y1, x2, y2].
+        text (str): O texto a ser desenhado próximo ao bounding box.
+        font_scale (float): Escala da fonte do texto.
+        color (tuple): Cor do texto e do bounding box (formato BGR).
+        thickness (int): Espessura do texto e do bounding box.
+
+    Returns:
+        numpy.ndarray: A imagem com o bounding box e o texto desenhados.
+    """
+    # Coordenadas do bounding box
+    x1, y1, x2, y2 = map(int, box)
+
+    # Calcular a posição do texto
+    text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0]
+    text_x = x1
+    text_y = y2 + text_size[1] + 5  # Ajusta para colocar abaixo do bounding box
+
+    # Desenhar o texto
+    cv2.putText(img, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
+
+    return img
