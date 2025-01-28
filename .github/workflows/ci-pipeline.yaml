@@ -38,8 +38,8 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: Check settings.toml
-        run: ls -la
+      - name: Verify Dynaconf settings
+        run: poetry run python -c "from config.dynaconf_settings import settings; print(settings.to_dict())"
 
       # Etapa 6: Verificação de Formatação com Black
       - name: Format Check
