@@ -25,7 +25,6 @@ pyyaml = "*"
 paddleocr = "^2.9.1"
 scipy = "*"
 requests = "*"
-torch = "*"
 pytest = "*"
 pytest-cov = "*"
 # Para o simulador RTSP

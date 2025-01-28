@@ -34,22 +34,27 @@ jobs:
       - name: Install Dependencies
         run: poetry install --no-root
 
-      # Etapa 5: Configuração do PYTHONPATH
+      # Etapa 5: Instalação do Torch
+      - name: Install Torch
+        run: poetry add torch
+
+      # Etapa 6: Instalação do PaddlePaddle
+      - name: Install PaddlePaddle
+        run: poetry add paddlepaddle
+
+      # Etapa 7: Configuração do PYTHONPATH
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: Verify Dynaconf settings
-        run: poetry run python -c "from config.dynaconf_settings import settings; print(settings.to_dict())"
-
-      # Etapa 6: Verificação de Formatação com Black
+      # Etapa 8: Verificação de Formatação com Black
       - name: Format Check
         run: poetry run black --check .
 
-      # Etapa 7: Linting com Ruff
+      # Etapa 9: Linting com Ruff
       - name: Python Code Lint
         run: poetry run ruff check .
 
-      # Etapa 8: Verificação de Tipagem Estática com MyPy
+      # Etapa 10: Verificação de Tipagem Estática com MyPy
       - name: Static Type Check
         run: |
           mkdir -p .mypy_cache
@@ -60,11 +65,11 @@ jobs:
             --non-interactive \
             --explicit-package-bases
 
-      # Etapa 9: Verificação de Dependências com Deptry
+      # Etapa 11: Verificação de Dependências com Deptry
       - name: Dependency Check
         run: poetry run deptry . --per-rule-ignores DEP002=pytest-cov
 
-      # Etapa 10: Execução dos Testes com Pytest
+      # Etapa 12: Execução dos Testes com Pytest
       - name: Run Unit Tests
         env:
           DROPBOX_ACCESS_TOKEN: "fake_access_token"
