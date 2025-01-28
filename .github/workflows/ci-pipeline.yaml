@@ -48,11 +48,11 @@ jobs:
 
       - name: Verificar configuração do Dynaconf
         env:
-          DROPBOX_ACCESS_TOKEN: "fake_access_token"
-          DROPBOX_APP_KEY: "fake_app_key"
-          DROPBOX_APP_SECRET: "fake_app_secret"
-          DROPBOX_REFRESH_TOKEN: "fake_refresh_token"
-          DROPBOX_OFFLINE_ACCESS_CODE: "fake_offline_code"
+          DYNACONF_DROPBOX_ACCESS_TOKEN: "fake_access_token"
+          DYNACONF_DROPBOX_APP_KEY: "fake_app_key"
+          DYNACONF_DROPBOX_APP_SECRET: "fake_app_secret"
+          DYNACONF_DROPBOX_REFRESH_TOKEN: "fake_refresh_token"
+          DYNACONF_DROPBOX_OFFLINE_ACCESS_CODE: "fake_offline_code"
           ENV_FOR_DYNACONF: "test"
         run: poetry run python -c "from config.dynaconf_settings import settings; print(settings.to_dict())"
 
@@ -81,11 +81,11 @@ jobs:
 
       - name: Run Unit Tests
         env:
-          DROPBOX_ACCESS_TOKEN: "fake_access_token"
-          DROPBOX_APP_KEY: "fake_app_key"
-          DROPBOX_APP_SECRET: "fake_app_secret"
-          DROPBOX_REFRESH_TOKEN: "fake_refresh_token"
-          DROPBOX_OFFLINE_ACCESS_CODE: "fake_offline_code"
+          DYNACONF_DROPBOX_ACCESS_TOKEN: "fake_access_token"
+          DYNACONF_DROPBOX_APP_KEY: "fake_app_key"
+          DYNACONF_DROPBOX_APP_SECRET: "fake_app_secret"
+          DYNACONF_DROPBOX_REFRESH_TOKEN: "fake_refresh_token"
+          DYNACONF_DROPBOX_OFFLINE_ACCESS_CODE: "fake_offline_code"
           ENV_FOR_DYNACONF: "test"
         run: |
           poetry run pytest --cov=application --cov=config --cov=domain --cov=infrastructure --cov=presentation --cov=tests --cov-report=term --cov-report=xml:coverage.xml tests
