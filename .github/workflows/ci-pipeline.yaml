@@ -67,7 +67,7 @@ jobs:
 
       # Etapa 11: Verificação de Dependências com Deptry
       - name: Dependency Check
-        run: poetry run deptry . --per-rule-ignores DEP002=pytest-cov
+        run: poetry run deptry . --per-rule-ignores DEP002=pytest-cov,paddlepaddle
 
       # Etapa 12: Execução dos Testes com Pytest
       - name: Run Unit Tests
