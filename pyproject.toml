@@ -27,6 +27,7 @@ scipy = "*"
 requests = "*"
 torch = "*"
 pytest = "*"
+pytest-cov = "*"
 # Para o simulador RTSP
 #flask = "*"
 #gunicorn = "*"
@@ -54,6 +55,8 @@ coverage = "*"
 pytest-icdiff = "*"
 pre-commit = "^3.8.0"
 deptry = "*"
+pytest = "*"
+pytest-cov = "*"
 
 [tool]
 
