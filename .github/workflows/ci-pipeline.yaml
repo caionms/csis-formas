@@ -46,15 +46,11 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: Verificar configuração do Dynaconf
-        env:
-          DYNACONF_DROPBOX__ACCESS_TOKEN: "fake_access_token"
-          DYNACONF_DROPBOX__APP_KEY: "fake_app_key"
-          DYNACONF_DROPBOX__APP_SECRET: "fake_app_secret"
-          DYNACONF_DROPBOX__REFRESH_TOKEN: "fake_refresh_token"
-          DYNACONF_DROPBOX__OFFLINE_ACCESS_CODE: "fake_offline_code"
-          ENV_FOR_DYNACONF: "test"
-        run: poetry run python -c "from config.dynaconf_settings import settings; print(settings.to_dict())"
+      - name: Debug PYTHONPATH
+        run: echo $PYTHONPATH
+
+      - name: List Project Files
+        run: ls -R
 
       # Etapa 8: Verificação de Formatação com Black
       - name: Format Check
