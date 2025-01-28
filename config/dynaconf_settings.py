@@ -12,4 +12,7 @@ settings = Dynaconf(
     root_path=Path(__file__).parents[1],
     silent=False,
     merge_enabled=True,
+    environments=True,
+    envvar_prefix="DYNACONF",
+    load_dotenv=True,
 )
