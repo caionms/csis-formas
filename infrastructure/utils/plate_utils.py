@@ -271,17 +271,15 @@ def format_license(text: str, plate_type: PlateType) -> tuple[str, bool]:
     formatted_license = []
 
     for i, char in enumerate(text):
-        if i in [0, 1, 2]:  # Comum para ambos os tipos de placa
-            formatted_license.append(int_to_char.get(char, char))
-        elif i == 4 and plate_type == PlateType.MERCOSUL:  # Caso especial para MERCOSUL
-            formatted_license.append(int_to_char.get(char, char))
-        else:  # Posições numéricas para ambos os formatos
-            formatted_license.append(char_to_int.get(char, char))
+        if i < 3:  # First three characters (common to both formats)
+            formatted_license.append(int_to_char.get(char, char) if char.isdigit() else char)
+        elif i == 4 and plate_type == PlateType.MERCOSUL:  # Special case for Mercosul
+            formatted_license.append(int_to_char.get(char, char) if char.isdigit() else char)
+        else:  # Remaining positions (numeric for both formats)
+            formatted_license.append(char_to_int.get(char, char) if char.isalpha() else char)
 
-    # Combina a lista de caracteres formatados em uma string
-    formatted_license_str = "".join(formatted_license)
-
-    return formatted_license_str, True
+        # Join the formatted license list back into a string
+    return "".join(formatted_license), True
 
 
 def read_license_plate(license_plate_crop: CroppedPlate, ocr: PaddleOCR) -> list[str | None]:
