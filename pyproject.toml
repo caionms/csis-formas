@@ -63,6 +63,7 @@ pytest-cov = "*"
 [tool.deptry]
 ignore = ["DEP001"]
 exclude = [".venv", ".github", "dev"]
+ignored-dependencies = ["pytest-cov"]
 
 [tool.ruff]
 line-length = 100
