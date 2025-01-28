@@ -38,6 +38,9 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
+      - name: Check settings.toml
+        run: ls -la
+
       # Etapa 6: Verificação de Formatação com Black
       - name: Format Check
         run: poetry run black --check .
