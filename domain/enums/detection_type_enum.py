@@ -31,3 +31,4 @@ class DetectionTypeEnum(Enum):
     WEAPON_DETECTION = WEAPON_MODEL_DROPBOX_PATH
     """Tipo de detecção de armas."""
     GRAFFITI_SPRAY_DETECTION = GRAFFITI_SPRAY_MODEL_DROPBOX_PATH
+    """Tipo de detecção de grafite."""
