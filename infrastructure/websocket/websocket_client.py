@@ -79,8 +79,11 @@ class WebSocketClient:
             detection_data (dict): Dados da detecção.
             frame_bytes (bytes): Frame da detecção em bytes.
         """
-        self.sio.emit("new_detection", {"detectionData": detection_data, "frame": frame_bytes})
-        logger.info("Dados de detecção enviados para o servidor WebSocket.")
+        try:
+            self.sio.emit("new_detection", {"detectionData": detection_data, "frame": frame_bytes})
+            logger.info("Dados de detecção enviados para o servidor WebSocket.")
+        except Exception as e:
+            logger.error(f"Falha ao enviar detecção via WebSocket: {e}")
 
     def is_connected(self) -> bool:
         """Verifica se o cliente está conectado ao servidor WebSocket."""
