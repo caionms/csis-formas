@@ -234,11 +234,11 @@ def main(
                             )
 
                             # Objeto a ser enviado para o dashboard
-                            detections_to_send.append(
-                                {
-                                    "class": f"Placa {track_data['plate_type']}: {track_data['final_plate']}",
-                                }
-                            )
+                            data_to_send = {
+                                "class": f"Placa {track_data['plate_type']}: "
+                                f"{track_data['final_plate']}",
+                            }
+                            detections_to_send.append(data_to_send)
 
                             track_data["registered"] = True
                         except Exception:
