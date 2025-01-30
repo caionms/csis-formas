@@ -4,6 +4,7 @@ Módulo que executa detecção de segurança pública em uma janela.
 
 import importlib.resources as pkg_resources
 import os
+from datetime import datetime
 from pathlib import Path
 from time import time
 from typing import Any
@@ -37,8 +38,15 @@ from infrastructure.utils.suspicious_behavior_utils import (
     update_tracked_objects_proximity_to_vehicle,
 )
 from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
+from infrastructure.websocket.websocket_client import WebSocketClient
 
 logger = get_logger(__name__)
+
+# URL do servidor WebSocket
+WEBSOCKET_SERVER_URL = "http://localhost:3000"
+
+# Inicializa o cliente WebSocket
+ws_client = WebSocketClient(WEBSOCKET_SERVER_URL)
 
 
 def detect_suspicious_presence(
@@ -127,6 +135,9 @@ def detect_suspicious_presence(
                 tracking_data=tracking_data,
             )
 
+            # Lista de detecções a serem enviadas para o dashboard
+            detections_to_send = []
+
             suspects_ids = []
             for box, track_id, cls, confidence in zip(boxes, track_ids, classes, confidences):
                 color: tuple[int, int, int] | None = None
@@ -138,6 +149,13 @@ def detect_suspicious_presence(
                         suspects_ids.append(track_id)
                         label = f"{track_id}: {round(total_time,2)}s (suspect)"
                         color = (0, 0, 255)  # Red for suspicious persons
+
+                        # Objeto a ser enviado para o dashboard
+                        detections_to_send.append(
+                            {
+                                "class": "Suspeito próximo ao veículo",
+                            }
+                        )
                     else:
                         label = f"{track_id}: {round(total_time,2)}s"
                 else:
@@ -164,6 +182,31 @@ def detect_suspicious_presence(
                     suspect_ids=suspects_ids,
                     tracking_data=tracking_data,
                 )
+
+                # Envia as detecções para o dashboard (WebSocket)
+                if detections_to_send:
+                    if ws_client.is_connected():
+                        ws_client.send_detection(
+                            detection_data={
+                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "detections": detections_to_send,
+                                "camera": camera_location,
+                            },
+                            frame_bytes=cv.imencode(".png", screenshot)[1].tobytes(),
+                        )
+                    else:
+                        logger.error("Não conectado ao WebSocket. Tentando reconectar...")
+                        ws_client.connect()
+                        if ws_client.is_connected():
+                            ws_client.send_detection(
+                                detection_data={
+                                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                    "detections": detections_to_send,
+                                    "camera": camera_location,
+                                },
+                                frame_bytes=cv.imencode(".png", screenshot)[1].tobytes(),
+                            )
+
                 for suspect_id in suspects_ids:
                     tracking_data.get(suspect_id, {})["alert_sent"] = True
 
