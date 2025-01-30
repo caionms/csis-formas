@@ -10,13 +10,14 @@ from paddleocr import PaddleOCR
 from ultralytics import YOLO
 
 from config.dynaconf_settings import settings
+from config.paths import RESOURCES_FOLDER_PATH
 from infrastructure.dropbox.dropbox_manager import DropboxManager
 
 REC_ALGORITHM = settings.paddleocr.rec_algorithm
 REC_IMAGE_SHAPE = settings.paddleocr.rec_image_shape
 USE_SPACE_CHAR = settings.paddleocr.use_space_char
 USE_GPU = settings.paddleocr.use_gpu
-CHAR_DICT = Path(__file__).parents[1] / "resources" / "en_dict.txt"
+CHAR_DICT = RESOURCES_FOLDER_PATH / "en_dict.txt"
 
 
 class NoModelAvailableException(Exception):

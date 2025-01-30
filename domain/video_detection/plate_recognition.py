@@ -20,6 +20,7 @@ from config.paths import (
     DATA_FOLDER_PATH,
     FRAMES_FOLDER_PATH,
     MODELS_FOLDER_PATH,
+    RESOURCES_FOLDER_PATH,
     VIDEOS_FOLDER_PATH,
 )
 from domain.enums.plate_enum import VehicleEnum
@@ -172,7 +173,12 @@ def main(
         current_time_sec = current_time_ms / 1000
 
         # Run YOLOv8 inference on the frame
-        results = list(model.track(source=frame, persist=True, stream=True, conf=0.91))
+        yaml_tracker = RESOURCES_FOLDER_PATH / "botsort.yaml"
+        results = list(
+            model.track(
+                source=frame, persist=True, stream=True, conf=0.87, tracker=str(yaml_tracker)
+            )
+        )
 
         # Display the annotated frame
         annotated_frame = results[0].plot()

@@ -16,7 +16,12 @@ from config.globals import (
     PLATE_PADDLE_RECOGNITION_MODEL_DROPBOX_PATH,
     PLATE_YOLO_DETECTION_MODEL_DROPBOX_PATH,
 )
-from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH, MODELS_FOLDER_PATH
+from config.paths import (
+    DATA_FOLDER_PATH,
+    FRAMES_FOLDER_PATH,
+    MODELS_FOLDER_PATH,
+    RESOURCES_FOLDER_PATH,
+)
 from domain import TrackingData
 from domain.enums.plate_enum import VehicleEnum
 from infrastructure.logging.log_config import get_logger
@@ -147,7 +152,12 @@ def main(
             break
 
         # Run YOLOv8 inference on the frame
-        results = list(model.track(source=frame, persist=True, stream=True, conf=0.8))
+        yaml_tracker = RESOURCES_FOLDER_PATH / "botsort.yaml"
+        results = list(
+            model.track(
+                source=frame, persist=True, stream=True, conf=0.87, tracker=str(yaml_tracker)
+            )
+        )
 
         # Display the annotated frame
         annotated_frame = results[0].plot()
