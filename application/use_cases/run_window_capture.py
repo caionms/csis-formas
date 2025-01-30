@@ -5,6 +5,13 @@ from pathlib import Path
 from config.paths import DATA_FOLDER_PATH, FRAMES_FOLDER_PATH
 from domain.enums.detection_type_enum import DetectionTypeEnum
 from domain.enums.plate_enum import VehicleEnum
+from domain.window_capture.plate_recognition import main as plate_recognition_main
+from domain.window_capture.public_safety import main as public_safety_main
+from domain.window_capture.suspicious_behavior import (
+    detect_proximity_to_vehicle,
+    detect_proximity_with_pose,
+    detect_suspicious_presence,
+)
 
 
 def main(
@@ -47,20 +54,14 @@ def main(
         or detection_type == DetectionTypeEnum.WEAPON_DETECTION
         or detection_type == DetectionTypeEnum.GRAFFITI_SPRAY_DETECTION
     ):
-        from domain.window_capture.public_safety import main as public_safety_main
-
         public_safety_main(
             window_title, detection_type, output_json_path, image_folder_path, camera_location
         )
     elif detection_type == DetectionTypeEnum.PLATE_RECOGNITION:
-        from domain.window_capture.plate_recognition import main as plate_recognition_main
-
         plate_recognition_main(
             window_title, output_json_path, image_folder_path, type_of_camera, camera_location
         )
     elif detection_type == DetectionTypeEnum.SUSPICIOUS_PRESENCE:
-        from domain.window_capture.suspicious_behavior import detect_suspicious_presence
-
         detect_suspicious_presence(
             window_title,
             output_json_path,
@@ -69,8 +70,6 @@ def main(
             suspicion_threshold_time,
         )
     elif detection_type == DetectionTypeEnum.SUSPICIOUS_PROXIMITY_TO_VEHICLE:
-        from domain.window_capture.suspicious_behavior import detect_proximity_to_vehicle
-
         detect_proximity_to_vehicle(
             window_title,
             output_json_path,
@@ -80,8 +79,6 @@ def main(
         )
 
     elif detection_type == DetectionTypeEnum.SUSPICIOUS_PROXIMITY_WITH_POSE:
-        from domain.window_capture.suspicious_behavior import detect_proximity_with_pose
-
         detect_proximity_with_pose(
             window_title,
             output_json_path,
