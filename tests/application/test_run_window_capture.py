@@ -2,19 +2,20 @@
 """Testes para o módulo de detecção via captura de janela."""
 
 import sys
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
-
-from application.use_cases.run_window_capture import main
-from domain.enums.detection_type_enum import DetectionTypeEnum
-from domain.enums.plate_enum import VehicleEnum
 
 if sys.platform != "win32":
     pytest.skip(
         "Todos os testes deste arquivo só são executados no Windows", allow_module_level=True
     )
+
+from pathlib import Path
+from unittest.mock import patch
+
+from application.use_cases.run_window_capture import main
+from domain.enums.detection_type_enum import DetectionTypeEnum
+from domain.enums.plate_enum import VehicleEnum
 
 
 @pytest.fixture
