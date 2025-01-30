@@ -236,8 +236,7 @@ def main(
                             # Objeto a ser enviado para o dashboard
                             detections_to_send.append(
                                 {
-                                    "class": f"Placa {track_data["plate_type"]}: "
-                                    f"{track_data["final_plate"]}",
+                                    "class": f"Placa {track_data['plate_type']}: {track_data['final_plate']}",
                                 }
                             )
 
