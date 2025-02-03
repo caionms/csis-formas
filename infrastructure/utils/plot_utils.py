@@ -201,14 +201,20 @@ def plot_skeleton_kpts(
     orig_shape: tuple[int, int] | None = None,
 ) -> None:
     """
-    Plota o esqueleto humano e pontos-chave em uma imagem.
+    Plota o esqueleto humano e pontos-chave em uma imagem, inclusive os de baixa confiança.
+
+    Os pontos com confiança alta serão desenhados na cor padrão (verde ou a cor definida)
+    e os de baixa confiança (abaixo do limiar) serão desenhados em vermelho, para evidenciar
+    que, apesar de exibidos, sua detecção pode não ser precisa.
 
     Args:
-        frame (np.ndarray): Frame onde o esqueleto será plotado.
-        kpts (List[Tuple[float, float]]): Lista de coordenadas (x, y) dos pontos-chave.
-        kpts_conf (List[float]): Confianças associadas a cada ponto-chave.
-        color (Optional[Tuple[int, int, int]]): Cor em formato RGB. Padrão é None.
-        orig_shape (Optional[Tuple[int, int]]): Forma original da imagem. Padrão é None.
+        frame (np.ndarray): Imagem onde o esqueleto será plotado.
+        kpts (List[Tuple[float, float]]): Lista de coordenadas (x, y) dos keypoints.
+        kpts_conf (List[float]): Confianças associadas a cada coordenada.
+        color (Optional[Tuple[int, int, int]]): Cor para pontos de alta
+        confiança (RGB). Padrão é verde.
+        orig_shape (Optional[Tuple[int, int]]): Dimensões originais da
+        imagem (altura, largura). Se None, usa 640x640.
     """
     skeleton = [
         [1, 2],
@@ -232,24 +238,74 @@ def plot_skeleton_kpts(
         [17, 15],
     ]
 
+    if orig_shape is not None:
+        max_y, max_x = orig_shape  # considerando orig_shape como (altura, largura)
+    else:
+        max_y, max_x = frame.shape[:2]
+
     radius = 5
+    high_conf_color = (
+        color if color else (0, 255, 0)
+    )  # cor para keypoints de alta confiança (verde por padrão)
+    low_conf_color = (0, 0, 255)  # cor para keypoints de baixa confiança (vermelho)
 
-    r, g, b = color if color else (0, 255, 0)  # Cor padrão verde
+    conf_threshold = 0.1  # Limiar para definir confiança alta
 
+    # Plot dos pontos-chave: plota todos, mas muda a cor se a confiança for baixa.
     for kid, (x_coord, y_coord) in enumerate(kpts):
-        if kpts_conf[kid] >= 0.1 and 0 < x_coord < 640 and 0 < y_coord < 640:
-            cv2.circle(frame, (int(x_coord), int(y_coord)), radius, (r, g, b), -1)
+        # Verifica se o ponto está dentro dos limites e, opcionalmente, se não é (0,0)
+        if 0 < x_coord < max_x and 0 < y_coord < max_y:
+            # Se o ponto tiver coordenadas (0,0), decide a cor; aqui,
+            # já é implícito que se x_coord e y_coord
+            # fossem 0, a condição 0 < x_coord falharia,
+            # mas incluímos a verificação para maior clareza.
+            if x_coord == 0 and y_coord == 0:
+                point_color = low_conf_color
+            else:
+                point_color = (
+                    high_conf_color if kpts_conf[kid] >= conf_threshold else low_conf_color
+                )
 
-    for sk_id, (p1, p2) in enumerate(skeleton):
-        x1, y1 = kpts[p1 - 1]
-        x2, y2 = kpts[p2 - 1]
-        conf1, conf2 = kpts_conf[p1 - 1], kpts_conf[p2 - 1]
+            cv2.circle(frame, (int(x_coord), int(y_coord)), radius, point_color, -1)
+            cv2.putText(
+                frame,
+                f"{kpts_conf[kid]:.2f}",
+                (int(x_coord) + 5, int(y_coord) - 5),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.4,
+                point_color,
+                1,
+            )
 
-        if all(
-            [conf1 >= 0.1, conf2 >= 0.1, 0 < x1 < 640, 0 < y1 < 640, 0 < x2 < 640, 0 < y2 < 640]
+    # Plot do esqueleto conectando os keypoints, independente da confiança
+    for p1, p2 in skeleton:
+        kp1 = kpts[p1 - 1]
+        kp2 = kpts[p2 - 1]
+        conf1 = kpts_conf[p1 - 1]
+        conf2 = kpts_conf[p2 - 1]
+
+        # Verifica se as coordenadas estão dentro dos limites e se não são (0,0),
+        # comparando os componentes
+        if (
+            0 < kp1[0] < max_x
+            and 0 < kp1[1] < max_y
+            and 0 < kp2[0] < max_x
+            and 0 < kp2[1] < max_y
+            and not (kp1[0] == 0 and kp1[1] == 0)
+            and not (kp2[0] == 0 and kp2[1] == 0)
         ):
-            pos1, pos2 = (int(x1), int(y1)), (int(x2), int(y2))
-            cv2.line(frame, pos1, pos2, (r, g, b), thickness=2)
+            line_color = (
+                high_conf_color
+                if (conf1 >= conf_threshold and conf2 >= conf_threshold)
+                else low_conf_color
+            )
+            cv2.line(
+                frame,
+                (int(kp1[0]), int(kp1[1])),
+                (int(kp2[0]), int(kp2[1])),
+                line_color,
+                thickness=2,
+            )
 
 
 def plot_keypoints_detection(
@@ -277,7 +333,7 @@ def plot_keypoints_detection(
     """
     # Define o texto e a cor com base no estado da pessoa
     state_labels = {
-        PoseStateEnum.STANDING: ("Em pé proximo a um veiculo", (0, 215, 255)),
+        PoseStateEnum.STANDING: ("Em pe proximo a um veiculo", (0, 215, 255)),
         PoseStateEnum.SQUATTING: ("Agachado(a) proximo a um veiculo", (0, 95, 255)),
         PoseStateEnum.SUSPECT: ("Suspeito(a)", (0, 0, 255)),
     }
