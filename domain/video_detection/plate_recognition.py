@@ -216,7 +216,7 @@ def main(
                 if (
                     not track_data["registered"]
                     and track_data["ocr_plates"]
-                    and len(track_data["ocr_plates"]) > 20
+                    and len(track_data["ocr_plates"]) > 6
                 ):
                     formatted_plates = []
                     for ocr_plate in track_data["ocr_plates"]:
