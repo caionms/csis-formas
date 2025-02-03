@@ -112,7 +112,7 @@ def main(
 
             # Verifica se alguma arma se sobrepõe a alguma pessoa
             weapon_overlaps_person = any(
-                calculate_bbox_iou(weapon_bbox, person_bbox) > 0
+                calculate_bbox_iou(weapon_bbox, person_bbox) > 0.8
                 for weapon_bbox in weapons
                 for person_bbox in persons
             )
