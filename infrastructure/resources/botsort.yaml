@@ -1,9 +1,14 @@
 tracker_type: botsort  # Ou 'bytetrack', mas 'botsort' é melhor para casos como o seu
 track_high_thresh: 0.87  # Aumenta a confiabilidade na primeira associação (padrão: 0.25)
+# track_high_thresh: 0.45  # Configuração para lidar com baixo FPS na COSEG
 track_low_thresh: 0.87   # Evita rastrear detecções de baixa confiança (padrão: 0.1)
+# track_low_thresh: 0.45   # Configuração para lidar com baixo FPS na COSEG
 new_track_thresh: 0.89   # Evita criar IDs novos para placas que aparecem rapidamente (padrão: 0.25)
+# new_track_thresh: 0.45   # Configuração para lidar com baixo FPS na COSEG
 track_buffer: 50        # Mantém IDs ativos por mais tempo antes de remover (padrão: 30)
+# track_buffer: 100       # Configuração para lidar com baixo FPS na COSEG
 match_thresh: 0.9       # Exige uma correspondência mais precisa entre detecções consecutivas (padrão: 0.8)
+# match_thresh: 0.4       # Configuração para lidar com baixo FPS na COSEG
 fuse_score: True        # Mantém a fusão entre confiança e IoU para melhorar a estabilidade
 gmc_method: sparseOptFlow  # Mantém a compensação de movimento para evitar oscilações no tracking
 
@@ -11,3 +16,4 @@ gmc_method: sparseOptFlow  # Mantém a compensação de movimento para evitar os
 proximity_thresh: 0.6   # Aumenta a proximidade exigida para associação (padrão: 0.5)
 appearance_thresh: 0.3  # Exige maior semelhança visual antes de criar um novo ID (padrão: 0.25)
 with_reid: False        # Pode ser True se usar um modelo de ReID para evitar troca de IDs entre placas
+# with_reid: True        # Configuração para lidar com baixo FPS na COSEG
