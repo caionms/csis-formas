@@ -284,7 +284,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        video_path="D:\\Documents\\TCC\\ICs\\Daniel\\Validacao\\Val 1\\5.mp4",
+        video_path="C:\\Users\\Miguel\\Documents\\TIC\\csis\\data\\plates\\1.mp4",
         type_of_camera=VehicleEnum.OUT,
         save_video=True,
         show_video=True,

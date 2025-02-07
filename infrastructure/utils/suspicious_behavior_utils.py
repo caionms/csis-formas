@@ -128,7 +128,7 @@ def is_squat(kpts: list[tuple[float, float]]) -> bool:
         and left_knee_angle < 145
         and right_knee_angle < 145
         and avg_leg_angle_int < 130
-    ) or (avg_leg_angle_ext > 80)
+    ) or (avg_leg_angle_ext > 130)
 
 
 def update_tracked_objects(

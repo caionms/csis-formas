@@ -520,7 +520,7 @@ def detect_proximity_with_pose(
 
                         # Verifique o IoU entre as bounding boxes
                         iou = calculate_bbox_iou(person_box, pose_box)
-                        if iou >= 0.5:  # Apenas correspondências com IoU >= 0.5 são aceitas
+                        if iou >= 0.2:  # Apenas correspondências com IoU >= 0.5 são aceitas
                             valid_matches.append((track_id, col))
                             matched_pose_indices.add(col)  # Marca a pose como correspondente
 
@@ -607,12 +607,12 @@ def detect_proximity_with_pose(
 
 
 if __name__ == "__main__":
-    detect_proximity_with_pose(
-        window_title="Reprodutor Multimídia",
-        suspicion_threshold_standing=10,
-        suspicion_threshold_crouched=5,
+    #detect_proximity_with_pose(
+    #    window_title="Genetec™ Security Desk",
+    #    suspicion_threshold_standing=10,
+    #    suspicion_threshold_crouched=5,
+    #)
+    detect_proximity_to_vehicle(
+       window_title="Genetec™ Security Desk",
+       suspicion_threshold_time=10,
     )
-    # detect_proximity_to_vehicle(
-    #    window_title="Reprodutor Multimídia",
-    #    suspicion_threshold_time=10,
-    # )

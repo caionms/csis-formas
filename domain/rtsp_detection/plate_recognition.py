@@ -257,7 +257,7 @@ def main(
 
 
 if __name__ == "__main__":
-    rtsp_url = "rtsp://"
+    rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-180d2c9fcd2a/live"
     main(
         rtsp_url=rtsp_url,
         type_of_camera=VehicleEnum.IN,

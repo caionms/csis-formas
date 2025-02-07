@@ -54,12 +54,12 @@ def setup_capture_window(window_title: str | None) -> int:
         raise ValueError(f"Window not found: {window_title}")
 
     # Restaura a janela se estiver minimizada, mas sem redimensioná-la
-    win32gui.ShowWindow(hwnd, win32con.SW_SHOWNOACTIVATE)
+    #win32gui.ShowWindow(hwnd, win32con.SW_SHOWNOACTIVATE)
 
     # Coloca a janela no topo da pilha sem dar foco e sem redimensionar
-    win32gui.SetWindowPos(
-        hwnd, win32con.HWND_TOP, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
-    )
+    #win32gui.SetWindowPos(
+    #    hwnd, win32con.HWND_TOP, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+    #)
 
     # Aguarda um momento para garantir que a janela esteja visível
     sleep(0.5)

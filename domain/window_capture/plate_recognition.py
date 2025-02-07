@@ -186,33 +186,32 @@ def main(
                 if formatted_plates:
                     tracking_data["final_plate"] = calculate_correct_plate(formatted_plates)
 
+                    if (
+                            tracking_data["bbox"] is not None
+                            and tracking_data["final_plate"] is not None
+                    ):
+                        plot_only_label(
+                            img=annotated_frame,
+                            box=tracking_data["bbox"],
+                            text=tracking_data["final_plate"],
+                        )
+
                     frame_path = (
-                        save_annotated_image(screenshot, str(image_folder_path))
+                        save_annotated_image(annotated_frame, str(image_folder_path))
                         if tracking_data["final_plate"] not in validated_plates
                         else None
                     )
 
                     try:
-                        if tracking_data["final_plate"] not in validated_plates:
-                            save_plate_results_to_json(
-                                file_path=str(output_json_path),
-                                type_of_camera=type_of_camera,
-                                plate_text=tracking_data["final_plate"],
-                                plate_type=tracking_data["plate_type"],
-                                camera_location=camera_location,
-                                frame_path=frame_path,
-                            )
+                        save_plate_results_to_json(
+                            file_path=str(output_json_path),
+                            type_of_camera=type_of_camera,
+                            plate_text=tracking_data["final_plate"],
+                            plate_type=tracking_data["plate_type"],
+                            camera_location=camera_location,
+                            frame_path=frame_path,
+                        )
                         tracking_data["registered"] = True
-
-                        if (
-                                tracking_data["bbox"] is not None
-                                and tracking_data["final_plate"] is not None
-                        ):
-                            plot_only_label(
-                                img=annotated_frame,
-                                box=tracking_data["bbox"],
-                                text=tracking_data["final_plate"],
-                            )
 
                         tracking_data: dict[str, Any] = {
                             "ocr_plates": [],
@@ -228,7 +227,7 @@ def main(
                         )
                         tracking_data["registered"] = False
 
-        cv.imshow("Plate Recognition Inference", annotated_frame)
+        #cv.imshow("Plate Recognition Inference", annotated_frame)
 
         # Debug da taxa de atualização
         logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
@@ -242,7 +241,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        window_title="Reprodutor Multimídia",
+        window_title="Genetec™ Security Desk",
         type_of_camera=VehicleEnum.OUT,
         qty_frames_before_detection=3,
     )
