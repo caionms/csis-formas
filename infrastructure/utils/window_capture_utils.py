@@ -7,6 +7,7 @@ from time import sleep
 import cv2 as cv
 import mss
 import numpy as np
+import win32api
 import win32con
 import win32gui
 
@@ -95,9 +96,17 @@ def capture_window(window_id: int | None = None, window_title: str | None = None
     width = right - left
     height = bottom - top
 
+    # Obtém a altura da barra superior (título da janela)
+    border_size = win32api.GetSystemMetrics(win32con.SM_CXSIZEFRAME)
+    title_bar_height = win32api.GetSystemMetrics(win32con.SM_CYCAPTION) + border_size
+
+    # Ajusta a altura para remover a barra superior
+    new_top = top + title_bar_height
+    new_height = height - title_bar_height
+
     with mss.mss() as sct:
         # Define a área a ser capturada
-        monitor = {"top": top, "left": left, "width": width, "height": height}
+        monitor = {"top": new_top, "left": left, "width": width, "height": new_height}
         screenshot = sct.grab(monitor)
 
         # Converte a captura para um array numpy
