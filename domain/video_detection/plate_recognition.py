@@ -226,15 +226,16 @@ def main(
                     )
 
                     try:
-                        save_plate_results_to_json(
-                            file_path=str(output_json_path),
-                            type_of_camera=type_of_camera,
-                            plate_text=tracking_data["final_plate"],
-                            plate_type=tracking_data["plate_type"],
-                            camera_location=camera_location,
-                            frame_path=frame_path,
-                            video_time=current_time_sec,
-                        )
+                        if tracking_data["final_plate"] not in validated_plates:
+                            save_plate_results_to_json(
+                                file_path=str(output_json_path),
+                                type_of_camera=type_of_camera,
+                                plate_text=tracking_data["final_plate"],
+                                plate_type=tracking_data["plate_type"],
+                                camera_location=camera_location,
+                                frame_path=frame_path,
+                                video_time=current_time_sec,
+                            )
                         tracking_data["registered"] = True
 
                         if (
