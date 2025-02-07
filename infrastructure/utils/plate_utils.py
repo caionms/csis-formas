@@ -455,3 +455,218 @@ def add_or_update_ocr(
 
         # Atualiza o tipo da placa para caso tenha ocorrido um erro em distancia maior
         tracking_data[track_id]["plate_type"] = plate_type
+
+
+class ExperimentalCroppedPlate:
+    """
+    Classe que guarda a imagem recortada em 2 disposições de cores:
+    1. RGB
+    2. Tons de cinza
+    """
+
+    plate_text: str | None = None
+
+    def __init__(
+        self,
+        rgb: np.ndarray,
+        gray: np.ndarray,
+        plate_type: PlateType,
+        label: str,
+        class_id: int,
+        bbox: Any,
+    ):
+        self.rgb = rgb
+        self.gray = gray
+        self.plate_type = plate_type
+        self.label = label
+        self.class_id = class_id
+        self.bbox = bbox
+
+
+def experimental_read_license_plate(
+    license_plate_crop: ExperimentalCroppedPlate, ocr: PaddleOCR, class_id: int = 1
+) -> list[str | None]:
+    """
+    Read the license plate text from the given cropped image(s) and format it according to the
+    plate type. Returns the first plate that is in the correct format.
+
+    Args:
+        license_plate_crop (ExperimentalCroppedPlate): Cropped images and the plate information.
+        ocr (PaddleOCR): The OCR model to use for text recognition.
+        class_id (int): The class ID of the detected license plate.
+
+    Returns:
+        list[str | None]: A list of license plate texts or None if no valid plate is found.
+    """
+    rgb_text = experimental_run_ocr_inference(license_plate_crop.rgb, ocr, class_id)
+    gray_text = experimental_run_ocr_inference(license_plate_crop.gray, ocr, class_id)
+
+    plates = []
+    if rgb_text[0]:
+        plates.append(rgb_text[1])
+    if gray_text[0]:
+        plates.append(gray_text[1])
+
+    return plates
+
+
+def experimental_extract_and_save_cropped_images(
+    img: np.ndarray,
+    results: list[Any],
+    save_images: bool,
+    output_dir: Path = PLATES_FOLDER_PATH,
+) -> list[ExperimentalCroppedPlate]:
+    """
+    Extracts and optionally saves cropped images based on detection results.
+
+    Args:
+        img (np.ndarray): The original image from which to extract cropped images.
+        results (list): Detection results containing bounding boxes and labels.
+        save_images (bool): Flag indicating whether to save the cropped images.
+        output_dir (Path): The directory where the cropped images will be saved.
+
+    Returns:
+        list[CroppedPlate]: A list of cropped images and the plate information.
+    """
+    cropped_images: list[ExperimentalCroppedPlate] = []
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if len(results[0].boxes) > 0:
+        for box, class_id, confidence in zip(
+            results[0].boxes.xyxy.cpu(),
+            results[0].boxes.cls.int(),
+            results[0].boxes.conf.tolist(),
+        ):
+            left, top, right, bottom = map(int, box.numpy())
+            cropped_img = img[top:bottom, left:right]
+            license_plate_crop_gray = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
+
+            if save_images:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
+                cropped_image_name = (
+                    f"{results[0].names[class_id.item()]}_{float(confidence):.2f}".replace(".", "-")
+                    + f"_{timestamp}"
+                )
+                cropped_image_path = output_dir / cropped_image_name
+
+                cv2.imwrite(str(cropped_image_path) + ".jpg", cropped_img)
+                cv2.imwrite(str(cropped_image_path) + "_gray.jpg", license_plate_crop_gray)
+
+            plate_type = PlateType.MERCOSUL if class_id.item() in [0, 1] else PlateType.OLD
+
+            cropped_plate = ExperimentalCroppedPlate(
+                rgb=cropped_img,
+                gray=license_plate_crop_gray,
+                plate_type=plate_type,
+                label=f"{results[0].names[class_id.item()]}: {float(confidence):.2f}\n",
+                class_id=class_id.item(),
+                bbox=box.numpy(),
+            )
+
+            cropped_images.append(cropped_plate)
+
+    return cropped_images
+
+
+# Função para executar inferência de OCR com tratamento para IndexError
+def experimental_run_ocr_inference(
+    image: np.ndarray, ocr: PaddleOCR, class_id: int
+) -> tuple[bool, str | None]:
+    """
+    Executa a inferência de OCR na imagem especificada e retorna o texto da placa.
+
+    Args:
+        image (np.ndarray): A imagem da placa a ser processada.
+        ocr (PaddleOCR): O modelo OCR para usar na inferência.
+        class_id (int): O ID da classe da placa detectada.
+
+    Returns:
+        tuple[bool, Optional[str]]: Uma tupla contendo um booleano indicando se a inferência
+        foi bem-sucedida e o texto da placa, ou None se a inferência falhar.
+    """
+    try:
+        # Executar OCR na imagem
+        result = ocr.ocr(image, cls=True)
+        logger.debug(f"Debug do resultado bruto: {result}")
+
+        # Verificar o resultado retornado
+        if result is None or len(result) == 0 or (len(result) == 1 and result[0] is None):
+            logger.warning("Nenhum resultado foi retornado pelo OCR...")
+            return False, None
+
+        # Exibir resultados de inferência
+        result_ocr = []
+
+        if result[0]:
+            if len(result[0]) >= 2 and class_id in [
+                0,
+                2,
+            ]:  # Trata casos de pegar o estado e a cidade
+                text_info = result[0][1][1]
+
+                # Tratamento dos resultados
+                if isinstance(text_info, tuple):
+                    text = text_info[0]
+                    confidence = text_info[1]
+                    logger.info(f"Texto: {text}, Confiança: {confidence:.2f}")
+                else:
+                    text = text_info
+                    logger.info(f"Texto: {text}, Confiança: N/A")
+
+                result_ocr.append(text)
+                logger.info(f"Processei a placa: {result_ocr[0]}")
+            else:  # Moto
+                for item in result[0]:  # Cada conjunto de texto (na moto terá 2)
+                    # box = item[0]  # Coordenadas da caixa delimitadora
+                    text_info = item[1]
+
+                    # Tratamento dos resultados
+                    if isinstance(text_info, tuple):
+                        text = text_info[0]
+                        confidence = text_info[1]
+                        logger.info(f"Texto: {text}, Confiança: {confidence:.2f}")
+                    else:
+                        text = text_info
+                        logger.info(f"Texto: {text}, Confiança: N/A")
+
+                    result_ocr.append(text)
+                logger.info(f'Processei a placa: {"-".join(result_ocr)}')
+
+        return True, "".join(result_ocr).replace("-", "")
+
+    except IndexError:
+        logger.exception(
+            "Erro: Índice fora do intervalo. "
+            "Verifique se o dicionário de caracteres é compatível com o modelo."
+        )
+        return False, None
+    except Exception as e:
+        logger.exception(f"Erro ao executar a inferência de OCR: {e}")
+        return False, None
+
+
+def experimental_add_or_update_ocr(
+    tracking_data: dict[str, Any],
+    ocrs: list[str | None],
+    plate_type: PlateType,
+    bbox: Any,
+) -> None:
+    """
+    Adiciona ou atualiza OCRs e o estado 'registered' para um dado track_id.
+
+    :param plate_type: Tipo da placa
+    :param tracking_data: O dicionário que guarda os dados de rastreamento.
+    :param ocrs: Lista de OCRs para adicionar.
+    :param bbox: Bounding box da placa.
+    """
+    # Adiciona os novos OCRs à lista existente
+    existing_ocrs: list[str] = tracking_data["ocr_plates"]
+    if existing_ocrs and len(existing_ocrs) >= 1:
+        tracking_data["ocr_plates"].extend(ocrs)
+    else:
+        tracking_data["ocr_plates"] = ocrs
+
+    # Atualiza o tipo da placa para caso tenha ocorrido um erro em distancia maior
+    tracking_data["plate_type"] = plate_type
+    tracking_data["bbox"] = bbox
+    print(f'peguei aq o bbox {tracking_data["bbox"]}')
