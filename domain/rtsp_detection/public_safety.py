@@ -147,6 +147,7 @@ def main(
                 classes_names=classes_names,
                 camera_location=camera_location,
                 ignore_classes=ignore_classes,
+                is_tracking=False
             )
             last_save_time = time()
 

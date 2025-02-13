@@ -28,6 +28,7 @@ def save_results_to_json(
     suspect_ids: list[str] | None = None,
     ignore_classes: list[int] | None = None,
     video_time: float | None = None,
+    is_tracking: bool = True,
 ) -> None:
     """
     Save YOLO inference results to a JSON file, adding a new entry with a timestamp.
@@ -43,22 +44,27 @@ def save_results_to_json(
         tracking_data (Optional[Dict[int, Dict[str, Any]]]): The tracking data for the detections.
         ignore_classes (Optional[List[int]]): List of classes to ignore in the results.
         video_time (Optional[float]): The time in seconds of the video where the detections occurred
+        is_tracking (bool): If True, the detections are being used for tracking.
     """
     detections = []
     for result in results:
         for box in result.boxes:
             class_id = int(box.cls)
-            box_id = int(box.id)
             confidence = float(box.conf)
+
+            is_suspect = True
+            is_alert_pending = True
+            if is_tracking:
+                box_id = int(box.id)
+                is_suspect = suspect_ids is None or box_id in suspect_ids
+                is_alert_pending = (
+                        tracking_data is None
+                        or tracking_data.get(box_id, {}).get("alert_sent", False) is False
+                )
 
             # Filter conditions
             is_confident = confidence > 0.2
             is_not_ignored = ignore_classes is None or class_id not in ignore_classes
-            is_suspect = suspect_ids is None or box_id in suspect_ids
-            is_alert_pending = (
-                tracking_data is None
-                or tracking_data.get(box_id, {}).get("alert_sent", False) is False
-            )
 
             if is_confident and is_not_ignored and is_suspect and is_alert_pending:
                 detections.append(

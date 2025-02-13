@@ -176,6 +176,7 @@ def main(
                 camera_location=camera_location,
                 ignore_classes=ignore_classes,
                 video_time=current_time_sec,
+                is_tracking=False
             )
 
         if show_video:
@@ -200,7 +201,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        video_path="D:\\Documents\\TCC\\ICs\\Natan\\drive\\Formas\\incendio.mp4",
+        video_path="D:\\Documents\\TCC\\ICs\\Natan\\drive\\Formas\\fogo2.mp4",
         save_video=True,
         show_video=True,
     )
