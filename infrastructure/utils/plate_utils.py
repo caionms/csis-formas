@@ -168,6 +168,9 @@ def calculate_correct_plate(plates: list[str]) -> str:
     if not all(len(plate) == len(plates[0]) for plate in plates):
         raise ValueError("Todas as placas devem ter o mesmo comprimento.")
 
+    if len(plates) == 0:
+        raise ValueError("Nenhuma placa foi fornecida para análise.")
+
     correct_plate = []
 
     # Iterar sobre cada posição dos caracteres nas placas
@@ -272,11 +275,17 @@ def format_license(text: str, plate_type: PlateType) -> tuple[str, bool]:
 
     for i, char in enumerate(text):
         if i < 3:  # First three characters (common to both formats)
+            logger.info(f"Estamos tentando validar o {char}.")
             formatted_license.append(int_to_char.get(char, char) if char.isdigit() else char)
+            logger.info(f"Depois do tratamento esse char virou {formatted_license[i]}")
         elif i == 4 and plate_type == PlateType.MERCOSUL:  # Special case for Mercosul
+            logger.info(f"Estamos tentando validar o {char}.")
             formatted_license.append(int_to_char.get(char, char) if char.isdigit() else char)
+            logger.info(f"Depois do tratamento esse char virou {formatted_license[i]}")
         else:  # Remaining positions (numeric for both formats)
+            logger.info(f"Estamos tentando validar o {char}.")
             formatted_license.append(char_to_int.get(char, char) if char.isalpha() else char)
+            logger.info(f"Depois do tratamento esse char virou {formatted_license[i]}")
 
         # Join the formatted license list back into a string
     return "".join(formatted_license), True

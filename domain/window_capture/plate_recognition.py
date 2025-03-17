@@ -3,6 +3,7 @@ Módulo que executa detecção de placas veículares em uma janela.
 """
 
 import os
+from datetime import datetime
 from pathlib import Path
 from time import time
 from typing import Any
@@ -42,8 +43,16 @@ from infrastructure.utils.plate_utils import (
 )
 from infrastructure.utils.plot_utils import plot_only_label
 from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
+from infrastructure.websocket.websocket_client import WebSocketClient
 
 logger = get_logger(__name__)
+
+# URL do servidor WebSocket
+WEBSOCKET_SERVER_URL = "http://localhost:3000"
+
+# Inicializa o cliente WebSocket
+ws_client = WebSocketClient(WEBSOCKET_SERVER_URL)
+
 
 validated_plates = [
     "QQV6O13",
@@ -166,6 +175,9 @@ def main(
                 registered=False,
             )
 
+        # Lista de detecções a serem enviadas para o dashboard
+        detections_to_send = []
+
         # Verifica se passaram 10 segundos
         if time() - last_run_time >= 10:
             # Remove as placas já registradas
@@ -207,6 +219,14 @@ def main(
                                 camera_location=camera_location,
                                 frame_path=frame_path,
                             )
+
+                            # Objeto a ser enviado para o dashboard
+                            data_to_send = {
+                                "class": f"Placa {track_data['plate_type']}: "
+                                f"{track_data['final_plate']}",
+                            }
+                            detections_to_send.append(data_to_send)
+
                             track_data["registered"] = True
                         except Exception:
                             logger.exception("Error saving plate results to JSON.")
@@ -226,6 +246,30 @@ def main(
                 ):
                     plot_only_label(
                         img=annotated_frame, box=box, text=tracking_data[track_id]["final_plate"]
+                    )
+
+        # Envia as detecções para o dashboard (WebSocket)
+        if detections_to_send:
+            if ws_client.is_connected():
+                ws_client.send_detection(
+                    detection_data={
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "detections": detections_to_send,
+                        "camera": camera_location,
+                    },
+                    frame_bytes=cv.imencode(".png", annotated_frame)[1].tobytes(),
+                )
+            else:
+                logger.error("Não conectado ao WebSocket. Tentando reconectar...")
+                ws_client.connect()
+                if ws_client.is_connected():
+                    ws_client.send_detection(
+                        detection_data={
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "detections": detections_to_send,
+                            "camera": camera_location,
+                        },
+                        frame_bytes=cv.imencode(".png", annotated_frame)[1].tobytes(),
                     )
 
         # Debug da taxa de atualização

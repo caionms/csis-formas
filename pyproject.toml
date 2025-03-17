@@ -43,6 +43,7 @@ pytest-cov = "*"
 #pyvirtualdisplay = "*"
 #lapx = ">=0.5.2"
 #importlib = "*"
+python-socketio = {extras = ["client"], version = "^5.12.1"}
 
 
 [tool.poetry.group.dev.dependencies]

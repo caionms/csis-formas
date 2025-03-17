@@ -3,6 +3,7 @@ Módulo que executa detecção de segurança pública em uma janela.
 """
 
 import os
+from datetime import datetime
 from pathlib import Path
 from time import time
 
@@ -19,6 +20,14 @@ from infrastructure.utils.model_utils import (
     initialize_yolo_model,
 )
 from infrastructure.utils.suspicious_behavior_utils import calculate_bbox_iou
+from infrastructure.websocket.websocket_client import WebSocketClient
+
+# URL do servidor WebSocket
+WEBSOCKET_SERVER_URL = "http://localhost:3000"
+
+# Inicializa o cliente WebSocket
+ws_client = WebSocketClient(WEBSOCKET_SERVER_URL)
+
 
 logger = get_logger(__name__)
 
@@ -110,6 +119,9 @@ def main(
         if show_video:
             cv.imshow("Public Safety Inference", annotated_frame)
 
+        # Lista de detecções a serem enviadas para o dashboard
+        detections_to_send = []
+
         # Salva imagem anotada e resultados em um arquivo JSON a cada segundo se houver detecções
         if time() - last_save_time >= 1.0 and len(results[0].boxes) > 0:
             persons = []
@@ -149,6 +161,44 @@ def main(
                 ignore_classes=ignore_classes,
                 is_tracking=False
             )
+
+            if len(results[0].boxes) > 0:
+                boxes = results[0].boxes.xyxy.cpu()
+                classes = results[0].boxes.cls.int()
+                confidences = results[0].boxes.conf.tolist()
+
+                for box, cls, confidence in zip(boxes, classes, confidences):
+                    # Objeto a ser enviado para o dashboard
+                    detections_to_send.append(
+                        {
+                            "class": f"{classes_names[cls]}",
+                        }
+                    )
+
+            # Envia as detecções para o dashboard (WebSocket)
+            if detections_to_send:
+                if ws_client.is_connected():
+                    ws_client.send_detection(
+                        detection_data={
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "detections": detections_to_send,
+                            "camera": camera_location,
+                        },
+                        frame_bytes=cv.imencode(".png", annotated_frame)[1].tobytes(),
+                    )
+                else:
+                    logger.error("Não conectado ao WebSocket. Tentando reconectar...")
+                    ws_client.connect()
+                    if ws_client.is_connected():
+                        ws_client.send_detection(
+                            detection_data={
+                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "detections": detections_to_send,
+                                "camera": camera_location,
+                            },
+                            frame_bytes=cv.imencode(".png", annotated_frame)[1].tobytes(),
+                        )
+
             last_save_time = time()
 
         # Debug da taxa de atualização
