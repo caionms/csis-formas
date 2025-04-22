@@ -20,9 +20,7 @@ from config.paths import (
     DATA_FOLDER_PATH,
     FRAMES_FOLDER_PATH,
     MODELS_FOLDER_PATH,
-    RESOURCES_FOLDER_PATH,
 )
-from domain import TrackingData
 from domain.enums.plate_enum import VehicleEnum
 from infrastructure.logging.log_config import get_logger
 from infrastructure.utils.dashboard_utils import save_annotated_image, save_plate_results_to_json
@@ -34,12 +32,11 @@ from infrastructure.utils.model_utils import (
     initialize_yolo_model,
 )
 from infrastructure.utils.plate_utils import (
-    add_or_update_ocr,
     calculate_correct_plate,
-    extract_and_save_cropped_images,
-    format_license,
-    read_license_plate, experimental_extract_and_save_cropped_images, experimental_read_license_plate,
     experimental_add_or_update_ocr,
+    experimental_extract_and_save_cropped_images,
+    experimental_read_license_plate,
+    format_license,
 )
 from infrastructure.utils.plot_utils import plot_only_label
 from infrastructure.utils.window_capture_utils import capture_window, setup_capture_window
@@ -172,9 +169,9 @@ def main(
                 )
 
             if (
-                    frames_detected > qty_frames_before_detection
-                    and tracking_data["ocr_plates"]
-                    and len(tracking_data["ocr_plates"]) > 6
+                frames_detected > qty_frames_before_detection
+                and tracking_data["ocr_plates"]
+                and len(tracking_data["ocr_plates"]) > 6
             ):
                 formatted_plates = []
                 for ocr_plate in tracking_data["ocr_plates"]:
@@ -205,8 +202,8 @@ def main(
                         tracking_data["registered"] = True
 
                         if (
-                                tracking_data["bbox"] is not None
-                                and tracking_data["final_plate"] is not None
+                            tracking_data["bbox"] is not None
+                            and tracking_data["final_plate"] is not None
                         ):
                             plot_only_label(
                                 img=annotated_frame,
