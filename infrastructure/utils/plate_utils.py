@@ -669,4 +669,3 @@ def experimental_add_or_update_ocr(
     # Atualiza o tipo da placa para caso tenha ocorrido um erro em distancia maior
     tracking_data["plate_type"] = plate_type
     tracking_data["bbox"] = bbox
-    print(f'peguei aq o bbox {tracking_data["bbox"]}')
