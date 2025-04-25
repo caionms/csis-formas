@@ -41,15 +41,12 @@ from infrastructure.utils.plate_utils import (
     experimental_read_license_plate,
     extract_and_save_cropped_images,
     format_license,
+    load_valid_plates,
     read_license_plate,
 )
 from infrastructure.utils.plot_utils import plot_only_label
 
 logger = get_logger(__name__)
-
-validated_plates = [
-    "QQV6O13",
-]
 
 
 def main(
@@ -157,6 +154,8 @@ def main(
     image_folder_path.mkdir(parents=True, exist_ok=True)
 
     tracking_data: dict[int, dict[str, Any]] = {}
+
+    validated_plates = list(load_valid_plates())
 
     last_checked_time = 0.0
     while cap.isOpened():
@@ -433,6 +432,8 @@ def main_without_tracking(
         "final_plate": None,
         "bbox": None,
     }
+
+    validated_plates = list(load_valid_plates())
 
     frames_detected = 0
     while cap.isOpened():

@@ -4,14 +4,14 @@ import string
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Set
 
 import cv2
 import numpy as np
 from paddleocr import PaddleOCR
 from ultralytics.engine.results import Results
 
-from config.paths import PLATES_FOLDER_PATH
+from config.paths import PLATES_FOLDER_PATH, RESOURCES_FOLDER_PATH
 from domain.enums.plate_enum import PlateType
 from infrastructure.logging.log_config import get_logger
 
@@ -669,3 +669,20 @@ def experimental_add_or_update_ocr(
     # Atualiza o tipo da placa para caso tenha ocorrido um erro em distancia maior
     tracking_data["plate_type"] = plate_type
     tracking_data["bbox"] = bbox
+
+
+def load_valid_plates(file_path: Path = RESOURCES_FOLDER_PATH / "placas_validas.txt") -> Set[str]:
+    """Load a set of valid license plates from a text file.
+
+    Each line in the file should contain one license plate. Lines are stripped of
+    leading/trailing whitespace and converted to uppercase. Empty lines are ignored.
+
+    Args:
+        file_path (Path): Path to the file containing license plates. Defaults to
+            RESOURCES_FOLDER_PATH / "placas_validas.txt".
+
+    Returns:
+        Set[str]: A set of cleaned, uppercase license plates.
+    """
+    with file_path.open(encoding="utf-8") as file:
+        return {line.strip().upper() for line in file if line.strip()}
