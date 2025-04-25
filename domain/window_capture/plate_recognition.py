@@ -18,8 +18,8 @@ from config.globals import (
 )
 from config.paths import (
     DATA_FOLDER_PATH,
-    FRAMES_FOLDER_PATH,
     MODELS_FOLDER_PATH,
+    PLATES_FOLDER_PATH,
     RESOURCES_FOLDER_PATH,
 )
 from domain import TrackingData
@@ -53,7 +53,7 @@ logger = get_logger(__name__)
 def main(
     window_title: str | None = None,
     output_json_path: Path = DATA_FOLDER_PATH / "output_plates.json",
-    image_folder_path: Path = FRAMES_FOLDER_PATH,
+    image_folder_path: Path = PLATES_FOLDER_PATH,
     type_of_camera: VehicleEnum = VehicleEnum.IN,
     camera_location: str = "Portaria 1 - Ondina",
 ) -> None:
@@ -169,7 +169,8 @@ def main(
             )
 
         # Verifica se passaram 10 segundos
-        if time() - last_run_time >= 10:
+        # TODO: Reduzido de 10 para 2 no desenvolvimento
+        if time() - last_run_time >= 2:
             # Remove as placas já registradas
             keys_to_remove = [
                 key for key, value in tracking_data.items() if value.get("registered", False)
@@ -182,6 +183,7 @@ def main(
                 if (
                     not track_data["registered"]
                     and track_data["ocr_plates"]
+                    # TODO: Reduzido de 10 para 6 durante desenvolvimento
                     and len(track_data["ocr_plates"]) > 6
                 ):
                     formatted_plates = []
@@ -226,9 +228,11 @@ def main(
                     track_id in tracking_data.keys()
                     and tracking_data[track_id]["final_plate"] is not None
                 ):
-                    plot_only_label(
+                    plotted_img = plot_only_label(
                         img=annotated_frame, box=box, text=tracking_data[track_id]["final_plate"]
                     )
+
+                    save_annotated_image(plotted_img, str(image_folder_path))
 
         # Debug da taxa de atualização
         logger.info(f"FPS: {1 / (time() - loop_time):.2f}")
@@ -243,7 +247,7 @@ def main(
 def main_without_tracking(
     window_title: str | None = None,
     output_json_path: Path = DATA_FOLDER_PATH / "output_plates.json",
-    image_folder_path: Path = FRAMES_FOLDER_PATH,
+    image_folder_path: Path = PLATES_FOLDER_PATH,
     type_of_camera: VehicleEnum = VehicleEnum.IN,
     camera_location: str = "Portaria 1 - Ondina",
     qty_frames_before_detection: int = 3,
@@ -399,11 +403,13 @@ def main_without_tracking(
                             tracking_data["bbox"] is not None
                             and tracking_data["final_plate"] is not None
                         ):
-                            plot_only_label(
+                            plotted_img = plot_only_label(
                                 img=annotated_frame,
                                 box=tracking_data["bbox"],
                                 text=tracking_data["final_plate"],
                             )
+
+                            save_annotated_image(plotted_img, str(image_folder_path))
 
                         tracking_data: dict[str, Any] = {
                             "ocr_plates": [],
