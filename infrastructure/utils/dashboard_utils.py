@@ -9,7 +9,6 @@ from typing import Any
 
 import cv2 as cv
 import numpy as np
-from ultralytics.engine.results import Results
 
 from domain.enums.plate_enum import PlateType, VehicleEnum
 from infrastructure.logging.log_config import get_logger
@@ -18,7 +17,7 @@ logger = get_logger(__name__)
 
 
 def save_results_to_json(
-    results: list[Results],
+    results: list[Any],
     file_path: str,
     classes_names: dict[int, str],
     model_name: str,

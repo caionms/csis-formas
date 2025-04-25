@@ -46,12 +46,6 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: Debug PYTHONPATH
-        run: echo $PYTHONPATH
-
-      - name: List Project Files
-        run: ls -R
-
       # Etapa 8: Verificação de Formatação com Black
       - name: Format Check
         run: poetry run black --check .
