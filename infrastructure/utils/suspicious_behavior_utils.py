@@ -110,25 +110,40 @@ def is_squat(kpts: list[tuple[float, float]]) -> bool:
     Returns:
         bool: Verdadeiro se o sujeito está agachado, Falso caso contrário.
     """
-    # Indices dos pontos-chave dos joelhos
+    # Índices dos pontos-chave dos joelhos
     left_knee_indices = [11, 13, 15]
     right_knee_indices = [12, 14, 16]
 
-    # Calcula os angulos internos dos joelhos
+    # Ângulos internos dos joelhos (180° = perna estendida)
     left_knee_angle = three_points_angle(kpts, left_knee_indices)
     right_knee_angle = three_points_angle(kpts, right_knee_indices)
 
-    # Calcula a media dos angulos dos joelhos (externo e interno)
-    avg_leg_angle_ext = (180 - left_knee_angle + 180 - right_knee_angle) / 2
-    avg_leg_angle_int = (left_knee_angle + right_knee_angle) / 2
+    # Médias
+    avg_int = (left_knee_angle + right_knee_angle) / 2
+    avg_ext = ((180 - left_knee_angle) + (180 - right_knee_angle)) / 2
 
-    # Condicao para definir agachamento (frontal e lateral)
-    return (
-        is_front(kpts)
-        and left_knee_angle < 145
-        and right_knee_angle < 145
-        and avg_leg_angle_int < 130
-    ) or (avg_leg_angle_ext > 80)
+    # ——— Limiares sugeridos ———
+    # Perna “considerada flexionada”
+    KNEE_FLEX_THRESHOLD = 150.0  # internal angle < 150°
+    # Agachamento frontal (mais profundo, exige ângulo interno médio menor)
+    FRONTAL_AVG_INT_THRESHOLD = 120.0  # avg_int < 120°
+    # Agachamento lateral (menos profundo, medido pelo ângulo externo médio)
+    LATERAL_AVG_EXT_THRESHOLD = 70.0  # avg_ext > 70°
+
+    if is_front(kpts):
+        # — frontal squat — exige perna flexionada + ângulo interno médio abaixo do limiar
+        return (
+            left_knee_angle < KNEE_FLEX_THRESHOLD
+            and right_knee_angle < KNEE_FLEX_THRESHOLD
+            and avg_int < FRONTAL_AVG_INT_THRESHOLD
+        )
+    else:
+        # — lateral squat — exige perna flexionada + ângulo externo médio acima do limiar
+        return (
+            left_knee_angle < KNEE_FLEX_THRESHOLD
+            and right_knee_angle < KNEE_FLEX_THRESHOLD
+            and avg_ext > LATERAL_AVG_EXT_THRESHOLD
+        )
 
 
 def update_tracked_objects(
