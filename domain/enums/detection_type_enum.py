@@ -16,6 +16,8 @@ class DetectionTypeEnum(Enum):
 
     PLATE_RECOGNITION = "PLATE_RECOGNITION"
     """Tipo de detecção de placa."""
+    PLATE_RECOGNITION_WITHOUT_TRACKING = "PLATE_RECOGNITION_WITHOUT_TRACKING"
+    """Tipo de detecção de placa sem rastreamento."""
     SUSPICIOUS_PRESENCE = "SUSPICIOUS_PRESENCE"
     """Tipo de detecção de comportamento suspeito por presença na câmera."""
     SUSPICIOUS_PROXIMITY_TO_VEHICLE = "SUSPICIOUS_PROXIMITY_TO_VEHICLE"

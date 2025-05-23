@@ -24,6 +24,12 @@ Com o **Poetry** instalado, instale as dependências do projeto executando:
 poetry install
 ```
 
+No windows, caso queira usar a captura de janela, rode
+
+```sh
+poetry sync --only main,windows
+```
+
 ### 3. Instalar PaddlePaddle e PyTorch
 Além das dependências do Poetry, é necessário instalar manualmente o **PaddlePaddle** e o **PyTorch**, adequados ao seu ambiente.
 

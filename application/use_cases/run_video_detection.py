@@ -12,7 +12,7 @@ def main(
     save_video: bool = False,
     show_video: bool = True,
     detection_type: DetectionTypeEnum = DetectionTypeEnum.PUBLIC_SAFETY,
-    output_json_path: Path = DATA_FOLDER_PATH / "output_plates.json",
+    output_json_path: Path = DATA_FOLDER_PATH / "output.json",
     image_folder_path: Path = FRAMES_FOLDER_PATH,
     type_of_camera: VehicleEnum = VehicleEnum.IN,
     camera_location: str = "Portaria 1 - Ondina",
@@ -68,10 +68,20 @@ def main(
             video_path=video_path,
             save_video=save_video,
             show_video=show_video,
-            output_json_path=output_json_path,
-            image_folder_path=image_folder_path,
             camera_location=camera_location,
             type_of_camera=type_of_camera,
+        )
+    elif detection_type == DetectionTypeEnum.PLATE_RECOGNITION_WITHOUT_TRACKING:
+        from domain.video_detection.plate_recognition import (
+            main_without_tracking as plate_recognition_main_without_tracking,
+        )
+
+        plate_recognition_main_without_tracking(
+            video_path=video_path,
+            show_video=show_video,
+            type_of_camera=type_of_camera,
+            camera_location=camera_location,
+            qty_frames_before_detection=3,
         )
     elif detection_type == DetectionTypeEnum.SUSPICIOUS_PRESENCE:
         from domain.video_detection.suspicious_behavior import detect_suspicious_presence
