@@ -353,6 +353,11 @@ def detect_proximity_to_vehicle(
     cv.destroyAllWindows()
     logger.info("[SuspiciousBehavior_RTSPDetection] Done.")
 
+def grab_latest(cap, drop=5):
+    # descarta `drop` grabs antigos e recupera só o último
+    for _ in range(drop):
+        cap.grab()
+    return cap.retrieve()
 
 def detect_proximity_with_pose(
     rtsp_url: str,
@@ -427,7 +432,9 @@ def detect_proximity_with_pose(
         loop_time = time()
 
         # Read the current frame
-        success, frame = cap.read()
+        success, frame = grab_latest(cap, drop=2)  # experimente valores entre 3 e 20
+
+        original = frame.copy()
 
         # Check if the read was successful and the frame is not None
         if not success or frame is None:
@@ -625,10 +632,19 @@ def detect_proximity_with_pose(
 
 
 if __name__ == "__main__":
-    rtsp_url = "rtsp://"
+    # rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-0018ae5fc18f/live" # Estacionamento camera nova 1280x720
+    rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-001a3fe7126d/live"
+
+    #rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-001a3fe5ec44/live PCU SPEED DOME
+    # rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-0018ae5fc18f/live Estacionamento Hosp Clinica
+    # rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-180d2c820e91/live Estacionamento Odonto 1
+    # rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-001a3fe7126d/live Estacionamento Odonto 2
+    # rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-443b3246f015/live Estacionamento Pamed
+
 
     detect_proximity_with_pose(
         rtsp_url=rtsp_url,
-        suspicion_threshold_standing=10,
-        suspicion_threshold_crouched=5,
+        suspicion_threshold_standing=60,
+        suspicion_threshold_crouched=30,
+        camera_location="Odonto estacionamento"
     )

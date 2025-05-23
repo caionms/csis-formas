@@ -123,8 +123,10 @@ def is_squat(kpts: list[tuple[float, float]]) -> bool:
     avg_ext = ((180 - left_knee_angle) + (180 - right_knee_angle)) / 2
 
     # ——— Limiares sugeridos ———
-    # Perna “considerada flexionada”
-    KNEE_FLEX_THRESHOLD = 150.0  # internal angle < 150°
+    # Perna “considerada flexionada” - Frontal
+    KNEE_FLEX_THRESHOLD_FRONT = 145.0
+    # Perna “considerada flexionada” - Lateral
+    KNEE_FLEX_THRESHOLD_LAT = 80.0
     # Agachamento frontal (mais profundo, exige ângulo interno médio menor)
     FRONTAL_AVG_INT_THRESHOLD = 120.0  # avg_int < 120°
     # Agachamento lateral (menos profundo, medido pelo ângulo externo médio)
@@ -133,16 +135,14 @@ def is_squat(kpts: list[tuple[float, float]]) -> bool:
     if is_front(kpts):
         # — frontal squat — exige perna flexionada + ângulo interno médio abaixo do limiar
         return (
-            left_knee_angle < KNEE_FLEX_THRESHOLD
-            and right_knee_angle < KNEE_FLEX_THRESHOLD
-            and avg_int < FRONTAL_AVG_INT_THRESHOLD
+            left_knee_angle < KNEE_FLEX_THRESHOLD_FRONT
+            and right_knee_angle < KNEE_FLEX_THRESHOLD_FRONT
         )
     else:
         # — lateral squat — exige perna flexionada + ângulo externo médio acima do limiar
         return (
-            left_knee_angle < KNEE_FLEX_THRESHOLD
-            and right_knee_angle < KNEE_FLEX_THRESHOLD
-            and avg_ext > LATERAL_AVG_EXT_THRESHOLD
+            left_knee_angle < KNEE_FLEX_THRESHOLD_LAT
+            and right_knee_angle < KNEE_FLEX_THRESHOLD_LAT
         )
 
 

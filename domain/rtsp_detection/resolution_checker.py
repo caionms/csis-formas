@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 
 
 def verificar_stream_rtsp(
-    rtsp_url: str, timeout: int = 10, mostrar_video: bool = True, max_frames: int = 10
+    rtsp_url: str, timeout: int = 10, mostrar_video: bool = True, max_frames: int = 10000
 ) -> tuple[int, int] | None:
     if not rtsp_url or not rtsp_url.startswith("rtsp://"):
         logger.error("URL RTSP inválida ou vazia")
@@ -63,12 +63,15 @@ def verificar_stream_rtsp(
             logger.info("[RESOLUTION_CHECKER] Exibindo vídeo. Pressione 'q' para sair.")
             count = 1
             while ret and count < max_frames:
+                loop_time = time.time()
                 cv2.imshow("Stream RTSP", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
                 ret, frame = cap.read()
                 if ret:  # Só incrementa se obteve um frame válido
                     count += 1
+                # Debug da taxa de atualização
+                logger.info(f"FPS: {1 / (time.time() - loop_time):.2f}")
             cv2.destroyAllWindows()
 
         cap.release()
@@ -83,7 +86,12 @@ def verificar_stream_rtsp(
 
 
 if __name__ == "__main__":
-    rtsp_url = "rtsp://807e9439d5ca.entrypoint.cloud.wowza.com:1935/app-rC94792j/068b9c9a_stream2"
+    # rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-001a3fe5ec44/live"
+    # rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-180d2c820e91/live" # Estacionamento Assalto 704x480
+    # rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-0018ae5fc18f/live" # Novo estacionamento 1280x720
+    # rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-001a3fe7126d/live"  # Estacionamento apertado 704×480
+    # rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-443b3246f015/live" # 704×480
+    rtsp_url = "rtsp://SSP:Ssp@2024@10.12.2.214:654/00000001-0000-babe-004e-180d2c9fcd2a/live"
     resultado = verificar_stream_rtsp(rtsp_url)
     if resultado:
         logger.info(f"Resolução do stream: {resultado[0]}x{resultado[1]}")

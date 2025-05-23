@@ -11,9 +11,13 @@ import numpy as np
 from paddleocr import PaddleOCR
 from ultralytics.engine.results import Results
 
-from config.paths import PLATES_FOLDER_PATH, RESOURCES_FOLDER_PATH
+from config.globals import PLATE_PADDLE_DETECTION_MODEL_DROPBOX_PATH, PLATE_PADDLE_RECOGNITION_MODEL_DROPBOX_PATH, \
+    PLATE_PADDLE_CLS_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN
+from config.paths import PLATES_FOLDER_PATH, RESOURCES_FOLDER_PATH, DATA_FOLDER_PATH, MODELS_FOLDER_PATH
 from domain.enums.plate_enum import PlateType
 from infrastructure.logging.log_config import get_logger
+from infrastructure.utils.model_utils import download_paddle_folder_model, NoModelAvailableException, \
+    initialize_paddleocr_model
 
 logger = get_logger(__name__)
 
@@ -686,3 +690,44 @@ def load_valid_plates(file_path: Path = RESOURCES_FOLDER_PATH / "placas_validas.
     """
     with file_path.open(encoding="utf-8") as file:
         return {line.strip().upper() for line in file if line.strip()}
+
+def _avalia_ocr():
+    image_path = DATA_FOLDER_PATH / "teste.png"
+
+    # Load the OCR model
+    text_detection_model_filename = PLATE_PADDLE_DETECTION_MODEL_DROPBOX_PATH.split("/")[-1]
+    text_detection_model_path = MODELS_FOLDER_PATH / text_detection_model_filename
+
+    text_recognition_model_filename = PLATE_PADDLE_RECOGNITION_MODEL_DROPBOX_PATH.split("/")[-1]
+    text_recognition_model_path = MODELS_FOLDER_PATH / text_recognition_model_filename
+
+    text_cls_model_filename = PLATE_PADDLE_CLS_MODEL_DROPBOX_PATH.split("/")[-1]
+    text_cls_model_path = MODELS_FOLDER_PATH / text_cls_model_filename
+
+    try:
+        download_paddle_folder_model(
+            text_detection_model_path,
+            PLATE_PADDLE_DETECTION_MODEL_DROPBOX_PATH,
+            DROPBOX_ACCESS_TOKEN,
+        )
+        download_paddle_folder_model(
+            text_recognition_model_path,
+            PLATE_PADDLE_RECOGNITION_MODEL_DROPBOX_PATH,
+            DROPBOX_ACCESS_TOKEN,
+        )
+        download_paddle_folder_model(
+            text_cls_model_path, PLATE_PADDLE_CLS_MODEL_DROPBOX_PATH, DROPBOX_ACCESS_TOKEN
+        )
+    except NoModelAvailableException as e:
+        logger.error(f"[PlateRecognition] {e} Detection cannot be performed.")
+        return
+
+    ocr = initialize_paddleocr_model(
+        text_detection_model_path, text_recognition_model_path, text_cls_model_path
+    )
+
+    result = ocr.ocr(str(image_path), cls=True)
+
+    print(result)
+
+_avalia_ocr()
